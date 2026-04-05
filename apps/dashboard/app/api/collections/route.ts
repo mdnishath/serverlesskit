@@ -3,21 +3,26 @@ import { defineCollection } from '@serverlesskit/core/schema';
 import { collectionToSql } from '@serverlesskit/db/schema-to-drizzle';
 import { getDb } from '@/lib/db';
 import { getAllCollections, getCollection, registerCollection } from '@/lib/schema-store';
+import { requirePermission } from '@/lib/api-auth';
 
 /**
- * GET /api/collections — List all registered collections.
+ * GET /api/collections — List all registered collections with field definitions.
  */
 export async function GET() {
-	const collections = getAllCollections().map((c) => ({
+	const auth = await requirePermission('collections', 'read');
+	if ('error' in auth) return auth.error;
+	const collections = await getAllCollections();
+	const data = collections.map((c) => ({
 		name: c.name,
 		slug: c.slug,
+		description: c.description,
 		fieldCount: Object.keys(c.fields).length,
 		timestamps: c.timestamps,
 		softDelete: c.softDelete,
-		description: c.description,
+		fields: c.fields,
 	}));
 
-	return NextResponse.json({ ok: true, data: collections });
+	return NextResponse.json({ ok: true, data });
 }
 
 /**
@@ -25,9 +30,12 @@ export async function GET() {
  */
 export async function POST(request: Request) {
 	try {
+		const auth = await requirePermission('collections', 'create');
+		if ('error' in auth) return auth.error;
+
 		const body = await request.json();
 
-		if (getCollection(body.slug ?? '')) {
+		if (await getCollection(body.slug ?? '')) {
 			return NextResponse.json(
 				{ ok: false, error: { code: 'CONFLICT', message: `Collection "${body.slug}" already exists` } },
 				{ status: 409 },
@@ -37,7 +45,7 @@ export async function POST(request: Request) {
 		const result = defineCollection(body);
 		if (!result.ok) {
 			return NextResponse.json(
-				{ ok: false, error: { code: result.error.code, message: result.error.message } },
+				{ ok: false, error: { code: result.error.code, message: result.error.message, details: result.error.details } },
 				{ status: 422 },
 			);
 		}
@@ -50,7 +58,7 @@ export async function POST(request: Request) {
 			await db.execute(sql);
 		}
 
-		registerCollection(collection);
+		await registerCollection(collection);
 
 		return NextResponse.json(
 			{ ok: true, data: { name: collection.name, slug: collection.slug } },

@@ -1,17 +1,14 @@
 'use client';
 
-import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import type { ReactNode } from 'react';
 
 /**
- * Theme provider wrapper for dark mode support.
+ * Theme provider — no-op wrapper.
+ * Theme is now handled by the useTheme hook in lib/use-theme.ts,
+ * avoiding the script injection warning from next-themes in Next.js 16.
  * @param props - Provider props with children
- * @returns ThemeProvider component
+ * @returns Children without wrapping
  */
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-	return (
-		<NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
-			{children}
-		</NextThemesProvider>
-	);
+	return <>{children}</>;
 };

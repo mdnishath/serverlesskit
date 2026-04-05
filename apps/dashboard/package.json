@@ -11,18 +11,20 @@
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
-    "@serverlesskit/shared": "workspace:*",
-    "@serverlesskit/core": "workspace:*",
-    "@serverlesskit/db": "workspace:*",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@libsql/client": "^0.14.0",
     "@serverlesskit/api": "workspace:*",
     "@serverlesskit/auth": "workspace:*",
-    "@libsql/client": "^0.14.0",
+    "@serverlesskit/core": "workspace:*",
+    "@serverlesskit/db": "workspace:*",
+    "@serverlesskit/shared": "workspace:*",
+    "clsx": "^2.1.0",
+    "lucide-react": "^0.500.0",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "lucide-react": "^0.500.0",
-    "next-themes": "^0.4.6",
-    "clsx": "^2.1.0",
     "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {

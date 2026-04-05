@@ -2,5 +2,5 @@ packages:
   - "apps/*"
   - "packages/*"
   - "packages/adapters/*"
-  - "plugins/*"
+  - "packages/create-serverlesskit"
   - "tooling/*"

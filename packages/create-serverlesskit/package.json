@@ -1,0 +1,20 @@
+{
+  "name": "create-serverlesskit",
+  "version": "0.1.0",
+  "description": "Scaffold a new ServerlessKit project",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-serverlesskit": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --project tsconfig.json --watch",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^20"
+  }
+}

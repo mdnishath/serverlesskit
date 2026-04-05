@@ -1,0 +1,43 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+
+      - name: Publish packages
+        run: |
+          pnpm --filter @serverlesskit/shared publish --access public --no-git-checks
+          pnpm --filter @serverlesskit/core publish --access public --no-git-checks
+          pnpm --filter @serverlesskit/db publish --access public --no-git-checks
+          pnpm --filter @serverlesskit/auth publish --access public --no-git-checks
+          pnpm --filter @serverlesskit/api publish --access public --no-git-checks
+          pnpm --filter @serverlesskit/plugin-sdk publish --access public --no-git-checks
+          pnpm --filter @serverlesskit/adapter-vercel publish --access public --no-git-checks
+          pnpm --filter @serverlesskit/adapter-node publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

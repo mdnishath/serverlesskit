@@ -24,8 +24,8 @@ type SearchItem = {
 
 const NAV_ITEMS: SearchItem[] = [
 	{ label: 'Overview', href: '/', icon: LayoutDashboard, section: 'Pages' },
-	{ label: 'Collections', href: '/collections', icon: FolderOpen, section: 'Pages' },
-	{ label: 'New Collection', href: '/collections/new', icon: FolderOpen, section: 'Actions' },
+	{ label: 'Content Types', href: '/collections', icon: FolderOpen, section: 'Pages' },
+	{ label: 'New Content Type', href: '/collections/new', icon: FolderOpen, section: 'Actions' },
 	{ label: 'Media Library', href: '/media', icon: Image, section: 'Pages' },
 	{ label: 'Users', href: '/users', icon: Users, section: 'Pages' },
 	{ label: 'Roles & Permissions', href: '/roles', icon: Shield, section: 'Pages' },

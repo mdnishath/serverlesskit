@@ -2,16 +2,20 @@ import { NextResponse } from 'next/server';
 import { createEntry, findMany } from '@serverlesskit/core/crud';
 import { getDb } from '@/lib/db';
 import { getCollection } from '@/lib/schema-store';
+import { requirePermission } from '@/lib/api-auth';
 
 type RouteParams = { params: Promise<{ collection: string }> };
 
 /**
- * GET /api/content/[collection] — List entries with filter, sort, pagination.
+ * GET /api/content/[collection] — List entries with pagination.
  */
 export async function GET(request: Request, { params }: RouteParams) {
 	try {
 		const { collection: slug } = await params;
-		const collection = getCollection(slug);
+		const auth = await requirePermission(slug, 'read');
+		if ('error' in auth) return auth.error;
+
+		const collection = await getCollection(slug);
 		if (!collection) {
 			return NextResponse.json(
 				{ ok: false, error: { code: 'NOT_FOUND', message: `Collection "${slug}" not found` } },
@@ -49,7 +53,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 export async function POST(request: Request, { params }: RouteParams) {
 	try {
 		const { collection: slug } = await params;
-		const collection = getCollection(slug);
+		const auth = await requirePermission(slug, 'create');
+		if ('error' in auth) return auth.error;
+
+		const collection = await getCollection(slug);
 		if (!collection) {
 			return NextResponse.json(
 				{ ok: false, error: { code: 'NOT_FOUND', message: `Collection "${slug}" not found` } },
