@@ -31,10 +31,10 @@ export default function PluginsPage() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-4 sm:space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold tracking-tight">Plugins</h1>
-				<p className="text-muted-foreground">Extend functionality with plugins{!canManage && ' — read only'}</p>
+				<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Plugins</h1>
+				<p className="text-sm text-muted-foreground">Extend functionality with plugins{!canManage && ' — read only'}</p>
 			</div>
 
 			{plugins.length === 0 ? (
@@ -43,7 +43,7 @@ export default function PluginsPage() {
 					<h3 className="mt-4 text-lg font-semibold">No plugins installed</h3>
 				</div>
 			) : (
-				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{plugins.map((plugin) => {
 						const statusCfg = STATUS_CONFIG[plugin.status];
 						const StatusIcon = statusCfg.icon;

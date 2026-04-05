@@ -16,13 +16,17 @@ import { prefetchRoute } from '@/lib/prefetch';
 type ContentType = { slug: string; name: string };
 
 /**
- * Collapsible sidebar with role-based visibility.
- * Accepts initialCollections from server layout for instant render.
- * Uses useCachedFetch for background refresh after hydration.
- * @param props - optional initialCollections from server
- * @returns Sidebar component
+ * Collapsible sidebar with mobile support.
+ * On mobile, calls onNavigate to close the drawer after link click.
+ * @param props - initialCollections, onNavigate callback
  */
-export const Sidebar = ({ initialCollections = [] }: { initialCollections?: ContentType[] }) => {
+export const Sidebar = ({
+	initialCollections = [],
+	onNavigate,
+}: {
+	initialCollections?: ContentType[];
+	onNavigate?: () => void;
+}) => {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { user } = useAuth();
@@ -30,7 +34,6 @@ export const Sidebar = ({ initialCollections = [] }: { initialCollections?: Cont
 	const [contentOpen, setContentOpen] = useState(true);
 	const [adminOpen, setAdminOpen] = useState(true);
 
-	/* Background refresh; initialCollections used for instant SSR render */
 	const { data: freshData } = useCachedFetch<ContentType[]>('/api/collections');
 	const contentTypes = (freshData ?? initialCollections).map((c) => ({ slug: c.slug, name: c.name }));
 
@@ -50,12 +53,11 @@ export const Sidebar = ({ initialCollections = [] }: { initialCollections?: Cont
 	const isActive = (href: string) => pathname === href || (href !== '/' && pathname.startsWith(href));
 
 	const navClass = (href: string) => cn(
-		'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+		'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
 		isActive(href) ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
 		collapsed && 'justify-center px-2',
 	);
 
-	/** Prefetch both the route JS chunk and API data on hover */
 	const handlePrefetch = useCallback((href: string) => {
 		router.prefetch(href);
 		prefetchRoute(href);
@@ -66,7 +68,8 @@ export const Sidebar = ({ initialCollections = [] }: { initialCollections?: Cont
 			className={navClass(href)}
 			title={collapsed ? label : undefined}
 			onMouseEnter={() => handlePrefetch(href)}
-			onFocus={() => handlePrefetch(href)}>
+			onFocus={() => handlePrefetch(href)}
+			onClick={onNavigate}>
 			<Icon className="h-4 w-4 shrink-0" />
 			{!collapsed && <span>{label}</span>}
 		</Link>
@@ -94,16 +97,16 @@ export const Sidebar = ({ initialCollections = [] }: { initialCollections?: Cont
 
 	return (
 		<aside className={cn(
-			'flex flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-200',
+			'flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-200',
 			collapsed ? 'w-16' : 'w-64',
 		)}>
 			<div className="flex h-14 items-center justify-between border-b border-border px-4">
 				{!collapsed && (
-					<Link href="/" className="flex items-center gap-2 font-semibold">
+					<Link href="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
 						<Database className="h-5 w-5" /><span>ServerlessKit</span>
 					</Link>
 				)}
-				<button type="button" onClick={toggle} className="rounded-md p-1.5 hover:bg-accent"
+				<button type="button" onClick={toggle} className="hidden rounded-md p-2 hover:bg-accent md:inline-flex"
 					aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
 					{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
 				</button>

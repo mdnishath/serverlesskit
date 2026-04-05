@@ -38,15 +38,15 @@ export const CollectionsClient = ({
 	};
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
+		<div className="space-y-4 sm:space-y-6">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-bold tracking-tight">Content Types</h1>
-					<p className="text-muted-foreground">Manage your content types</p>
+					<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Content Types</h1>
+					<p className="text-sm text-muted-foreground">Manage your content types</p>
 				</div>
 				{canCreate && (
 					<button type="button" onClick={() => router.push('/collections/new')}
-						className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+						className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
 						<Plus className="h-4 w-4" /> New Content Type
 					</button>
 				)}
@@ -67,8 +67,8 @@ export const CollectionsClient = ({
 					)}
 				</div>
 			) : (
-				<div className="rounded-xl border border-border bg-card shadow-sm">
-					<table className="w-full">
+				<div className="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
+					<table className="w-full min-w-[500px]">
 						<thead>
 							<tr className="border-b border-border text-left text-sm font-medium text-muted-foreground">
 								<th className="px-6 py-3">Name</th>

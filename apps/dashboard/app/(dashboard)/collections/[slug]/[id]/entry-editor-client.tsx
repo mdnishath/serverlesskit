@@ -103,22 +103,22 @@ export const EntryEditorClient = ({
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-4">
+		<div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex items-center gap-3">
 					<button type="button" onClick={() => router.push(`/collections/${slug}`)} className="rounded-lg p-2 hover:bg-accent">
 						<ArrowLeft className="h-4 w-4" />
 					</button>
 					<div>
-						<h1 className="text-2xl font-bold tracking-tight">
+						<h1 className="text-xl font-bold tracking-tight sm:text-2xl">
 							{readOnly ? 'View Entry' : isNew ? 'New Entry' : 'Edit Entry'}
 						</h1>
-						<p className="text-muted-foreground capitalize">{slug}</p>
+						<p className="text-sm text-muted-foreground capitalize">{slug}</p>
 					</div>
 				</div>
 				{!isNew && canDelete && (
 					<button type="button" onClick={handleDelete}
-						className="inline-flex items-center gap-2 rounded-lg border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
+						className="inline-flex items-center justify-center gap-2 rounded-lg border border-destructive px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10">
 						<Trash2 className="h-4 w-4" /> Delete
 					</button>
 				)}
@@ -128,7 +128,7 @@ export const EntryEditorClient = ({
 				<div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
 			)}
 
-			<div className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
+			<div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
 				{fields.length === 0 ? (
 					<p className="text-sm text-muted-foreground">No fields defined for this collection.</p>
 				) : (

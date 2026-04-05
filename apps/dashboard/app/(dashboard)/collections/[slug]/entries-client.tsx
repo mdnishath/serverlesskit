@@ -83,34 +83,34 @@ export const EntriesClient = ({
 	const displayName = collection?.name ?? slug;
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-4">
+		<div className="space-y-4 sm:space-y-6">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex items-center gap-3">
 					<button type="button" onClick={() => router.back()} className="rounded-lg p-2 hover:bg-accent">
 						<ArrowLeft className="h-4 w-4" />
 					</button>
 					<div>
-						<h1 className="text-2xl font-bold tracking-tight">{displayName}</h1>
-						<p className="text-muted-foreground">{entries.length} entries</p>
+						<h1 className="text-xl font-bold tracking-tight sm:text-2xl">{displayName}</h1>
+						<p className="text-sm text-muted-foreground">{entries.length} entries</p>
 					</div>
 				</div>
 				{canCreate && (
 					<button type="button" onClick={() => router.push(`/collections/${slug}/new`)}
-						className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+						className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
 						<Plus className="h-4 w-4" /> New Entry
 					</button>
 				)}
 			</div>
 
-			<div className="flex items-center gap-3">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
 				<div className="relative flex-1">
 					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 					<input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search entries..."
-						className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+						className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 				</div>
 				{canDelete && selected.size > 0 && (
 					<button type="button" onClick={handleBulkDelete}
-						className="inline-flex items-center gap-2 rounded-lg border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
+						className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-destructive px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10">
 						<Trash2 className="h-4 w-4" /> Delete ({selected.size})
 					</button>
 				)}
@@ -130,8 +130,8 @@ export const EntriesClient = ({
 					)}
 				</div>
 			) : (
-				<div className="rounded-xl border border-border bg-card shadow-sm overflow-auto">
-					<table className="w-full">
+				<div className="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
+					<table className="w-full min-w-[480px]">
 						<thead>
 							<tr className="border-b border-border text-left text-sm font-medium text-muted-foreground">
 								{canDelete && (

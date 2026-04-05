@@ -121,10 +121,10 @@ export const MediaClient = ({
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-4 sm:space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold tracking-tight">Media Library</h1>
-				<p className="text-muted-foreground">Upload and manage media files</p>
+				<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Media Library</h1>
+				<p className="text-sm text-muted-foreground">Upload and manage media files</p>
 			</div>
 
 			{canUpload && (
@@ -147,18 +147,18 @@ export const MediaClient = ({
 				</div>
 			)}
 
-			<div className="flex items-center gap-3">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
 				<div className="relative flex-1">
 					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 					<input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
 						placeholder="Search files..."
-						className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+						className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 				</div>
-				<div className="flex gap-1">
+				<div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
 					{FILTER_OPTIONS.map((opt) => (
 						<button key={opt.value} type="button" onClick={() => setFilter(opt.value)}
 							className={cn(
-								'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+								'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
 								filter === opt.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground',
 							)}>
 							<opt.icon className="h-3.5 w-3.5" />
@@ -168,7 +168,7 @@ export const MediaClient = ({
 				</div>
 			</div>
 
-			<div className="flex gap-6">
+			<div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
 				<div className="flex-1">
 					{filtered.length === 0 ? (
 						<div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12">
@@ -178,7 +178,7 @@ export const MediaClient = ({
 							</p>
 						</div>
 					) : (
-						<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+						<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 							{filtered.map((item) => (
 								<button key={item.id} type="button" onClick={() => setSelected(item)}
 									className={cn(
@@ -197,7 +197,7 @@ export const MediaClient = ({
 				</div>
 
 				{selected && (
-					<div className="w-72 shrink-0 space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+					<div className="w-full shrink-0 space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm lg:w-72">
 						<div className="flex items-center justify-between">
 							<h3 className="text-sm font-semibold">Details</h3>
 							<button type="button" onClick={() => setSelected(null)} className="rounded p-1 hover:bg-accent">

@@ -99,21 +99,21 @@ export const RolesClient = ({
 	};
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
+		<div className="space-y-4 sm:space-y-6">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-bold tracking-tight">Roles & Permissions</h1>
-					<p className="text-muted-foreground">Configure access control for your team</p>
+					<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Roles & Permissions</h1>
+					<p className="text-sm text-muted-foreground">Configure access control for your team</p>
 				</div>
 				{myCanCreate && (
 					<button type="button" onClick={() => setShowCreate(true)}
-						className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+						className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
 						<Plus className="h-4 w-4" /> New Role
 					</button>
 				)}
 			</div>
 
-			<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				{roles.map((role) => (
 					<div key={role.name} onClick={() => selectRole(role)} className={cn(
 						'flex flex-col items-start rounded-xl border p-4 text-left transition-colors cursor-pointer',
@@ -157,7 +157,7 @@ export const RolesClient = ({
 							</button>
 						)}
 					</div>
-					<div className="overflow-x-auto">
+					<div className="overflow-x-auto -mx-px">
 						<table className="w-full">
 							<thead>
 								<tr className="border-b border-border text-left text-xs font-medium uppercase text-muted-foreground">
@@ -187,8 +187,8 @@ export const RolesClient = ({
 			)}
 
 			{showCreate && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+				<div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+					<div className="w-full max-w-md rounded-t-xl border border-border bg-card p-5 shadow-xl sm:mx-4 sm:rounded-xl sm:p-6">
 						<h2 className="text-lg font-semibold">New Role</h2>
 						{createError && <div className="mt-3 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">{createError}</div>}
 						<div className="mt-4 space-y-3">

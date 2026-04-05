@@ -154,15 +154,15 @@ export const UsersClient = ({
 	};
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
+		<div className="space-y-4 sm:space-y-6">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-bold tracking-tight">Users</h1>
-					<p className="text-muted-foreground">Manage user accounts</p>
+					<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Users</h1>
+					<p className="text-sm text-muted-foreground">Manage user accounts</p>
 				</div>
 				{assignableRoles.length > 0 && (
 					<button type="button" onClick={openCreate}
-						className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+						className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
 						<Plus className="h-4 w-4" /> Add User
 					</button>
 				)}
@@ -175,15 +175,15 @@ export const UsersClient = ({
 					className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 			</div>
 
-			<div className="rounded-xl border border-border bg-card shadow-sm">
-				<table className="w-full">
+			<div className="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
+				<table className="w-full min-w-[640px]">
 					<thead>
 						<tr className="border-b border-border text-left text-sm font-medium text-muted-foreground">
-							<th className="px-6 py-3">User</th>
-							<th className="px-6 py-3">Role</th>
-							<th className="px-6 py-3">Status</th>
-							<th className="px-6 py-3">Created</th>
-							<th className="px-6 py-3 w-48 text-right">Actions</th>
+							<th className="px-4 py-3 sm:px-6">User</th>
+							<th className="px-4 py-3 sm:px-6">Role</th>
+							<th className="px-4 py-3 sm:px-6">Status</th>
+							<th className="hidden px-4 py-3 sm:table-cell sm:px-6">Created</th>
+							<th className="px-4 py-3 w-36 text-right sm:px-6 sm:w-48">Actions</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -223,7 +223,7 @@ export const UsersClient = ({
 											</span>
 										)}
 									</td>
-									<td className="px-6 py-4 text-sm text-muted-foreground">{formatDate(user.createdAt)}</td>
+									<td className="hidden px-4 py-4 text-sm text-muted-foreground sm:table-cell sm:px-6">{formatDate(user.createdAt)}</td>
 									<td className="px-6 py-4">
 										<div className="flex items-center justify-end gap-1">
 											{canEdit && (
@@ -249,8 +249,8 @@ export const UsersClient = ({
 
 			{/* ── Create / Edit / Password Modal ── */}
 			{modal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+				<div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+					<div className="w-full max-w-md rounded-t-xl border border-border bg-card p-5 shadow-xl sm:mx-4 sm:rounded-xl sm:p-6">
 						<div className="flex items-center justify-between mb-4">
 							<h2 className="text-lg font-semibold">
 								{modal === 'create' ? 'Add User' : modal === 'edit' ? `Edit ${editUser?.name}` : `Change Password — ${editUser?.name}`}

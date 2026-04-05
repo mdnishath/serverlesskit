@@ -1,17 +1,16 @@
 'use client';
 
-import { Moon, Sun, Search, Bell, User, LogOut } from 'lucide-react';
+import { Menu, Moon, Sun, Search, Bell, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useTheme } from '@/lib/use-theme';
 import { useAuth } from '@/lib/auth-context';
 
 /**
- * Dashboard header with search, theme toggle, user info, and logout.
- * Uses shared AuthProvider — no separate /api/auth/me fetch.
- * @returns Header component
+ * Dashboard header — hamburger on mobile, responsive search, user menu.
+ * @param props - onMenuToggle callback for mobile sidebar
  */
-export const Header = () => {
+export const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
 	const { resolvedTheme, setTheme, mounted } = useTheme();
 	const { user } = useAuth();
 	const router = useRouter();
@@ -26,16 +25,26 @@ export const Header = () => {
 	};
 
 	return (
-		<header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
-			<div className="flex items-center gap-4">
-				<div className="relative">
+		<header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
+			<div className="flex items-center gap-3">
+				{/* Hamburger — mobile only */}
+				<button type="button" onClick={onMenuToggle}
+					className="rounded-lg p-2 hover:bg-accent md:hidden" aria-label="Toggle menu">
+					<Menu className="h-5 w-5" />
+				</button>
+
+				{/* Search — icon on mobile, full input on sm+ */}
+				<div className="relative hidden sm:block">
 					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 					<input type="text" placeholder="Search... (Ctrl+K)"
-						className="h-9 w-64 rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+						className="h-9 w-48 rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring lg:w-64" />
 				</div>
+				<button type="button" className="rounded-lg p-2 hover:bg-accent sm:hidden" aria-label="Search">
+					<Search className="h-5 w-5 text-muted-foreground" />
+				</button>
 			</div>
 
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-1 sm:gap-2">
 				<button type="button" className="relative rounded-lg p-2 hover:bg-accent" aria-label="Notifications">
 					<Bell className="h-4 w-4" />
 				</button>

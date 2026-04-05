@@ -130,14 +130,14 @@ export default function NewCollectionPage() {
 	const isValid = name.trim().length > 0 && fields.length > 0 && fields.every((f) => f.name.trim().length > 0);
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
-			<div className="flex items-center gap-4">
+		<div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
+			<div className="flex items-center gap-3">
 				<Link href="/collections" className="rounded-lg p-2 hover:bg-accent">
 					<ArrowLeft className="h-4 w-4" />
 				</Link>
 				<div>
-					<h1 className="text-2xl font-bold tracking-tight">New Content Type</h1>
-					<p className="text-muted-foreground">Define the schema for your data</p>
+					<h1 className="text-xl font-bold tracking-tight sm:text-2xl">New Content Type</h1>
+					<p className="text-sm text-muted-foreground">Define the schema for your data</p>
 				</div>
 			</div>
 
@@ -147,9 +147,9 @@ export default function NewCollectionPage() {
 				</div>
 			)}
 
-			<div className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
+			<div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
 				<h2 className="text-sm font-semibold">Basic Info</h2>
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<label className="space-y-1.5">
 						<span className="text-sm font-medium">Name</span>
 						<input type="text" value={name} onChange={(e) => handleNameChange(e.target.value)}
@@ -169,7 +169,7 @@ export default function NewCollectionPage() {
 						placeholder="Optional description"
 						className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 				</label>
-				<div className="flex gap-6">
+				<div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
 					<label className="flex items-center gap-2">
 						<input type="checkbox" checked={timestamps} onChange={(e) => setTimestamps(e.target.checked)}
 							className="h-4 w-4 rounded border-border" />

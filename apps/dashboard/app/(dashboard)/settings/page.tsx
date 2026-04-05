@@ -19,15 +19,15 @@ export default function SettingsPage() {
 	const [tab, setTab] = useState<Tab>('general');
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-4 sm:space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-				<p className="text-muted-foreground">System configuration{!canUpdate && ' — read only'}</p>
+				<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Settings</h1>
+				<p className="text-sm text-muted-foreground">System configuration{!canUpdate && ' — read only'}</p>
 			</div>
-			<div className="flex gap-1 border-b border-border">
+			<div className="flex gap-1 overflow-x-auto border-b border-border">
 				{TABS.map((t) => (
 					<button key={t.id} type="button" onClick={() => setTab(t.id)}
-						className={cn('px-4 py-2.5 text-sm font-medium transition-colors',
+						className={cn('shrink-0 px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap',
 							tab === t.id ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground hover:text-foreground')}>
 						{t.label}
 					</button>
@@ -83,7 +83,7 @@ const GeneralSettings = ({ readOnly }: { readOnly: boolean }) => {
 	return (
 		<div className="max-w-2xl space-y-4">
 			{message && <div className="rounded-lg bg-green-500/10 border border-green-500/30 px-3 py-2 text-sm text-green-600">{message}</div>}
-			<div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+			<div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-4 sm:p-6">
 				<h2 className="text-sm font-semibold flex items-center gap-2"><Globe className="h-4 w-4" /> General</h2>
 				<label className="block space-y-1.5"><span className="text-sm font-medium">Site Name</span>
 					<input type="text" value={siteName} onChange={(e) => !readOnly && setSiteName(e.target.value)} readOnly={readOnly} className={inputClass} /></label>
@@ -97,7 +97,7 @@ const GeneralSettings = ({ readOnly }: { readOnly: boolean }) => {
 						<option value="Europe/London">Europe/London (GMT)</option>
 					</select></label>
 			</div>
-			<div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+			<div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-4 sm:p-6">
 				<h2 className="text-sm font-semibold">Registration</h2>
 				<label className="flex items-center gap-3">
 					<input type="checkbox" checked={regEnabled === 'true'} onChange={(e) => !readOnly && setRegEnabled(e.target.checked ? 'true' : 'false')}
@@ -179,7 +179,7 @@ const ApiKeySettings = ({ readOnly }: { readOnly: boolean }) => {
 					<button type="button" onClick={() => setNewRawKey('')} className="text-xs text-muted-foreground hover:underline">Dismiss</button>
 				</div>
 			)}
-			<div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+			<div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-4 sm:p-6">
 				<div className="flex items-center justify-between">
 					<h2 className="text-sm font-semibold flex items-center gap-2"><Key className="h-4 w-4" /> API Keys</h2>
 					{!readOnly && (
@@ -240,7 +240,7 @@ const ApiKeySettings = ({ readOnly }: { readOnly: boolean }) => {
 const MediaSettings = ({ readOnly }: { readOnly: boolean }) => {
 	const inputClass = `w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${readOnly ? 'opacity-60' : ''}`;
 	return (
-		<div className="max-w-2xl rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+		<div className="max-w-2xl rounded-xl border border-border bg-card p-4 shadow-sm space-y-4 sm:p-6">
 			<h2 className="text-sm font-semibold flex items-center gap-2"><HardDrive className="h-4 w-4" /> Storage</h2>
 			<label className="block space-y-1.5"><span className="text-sm font-medium">Provider</span>
 				<select disabled={readOnly} className={inputClass}>
@@ -263,7 +263,7 @@ const MediaSettings = ({ readOnly }: { readOnly: boolean }) => {
 };
 
 const DatabaseSettings = () => (
-	<div className="max-w-2xl rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+	<div className="max-w-2xl rounded-xl border border-border bg-card p-4 shadow-sm space-y-4 sm:p-6">
 		<h2 className="text-sm font-semibold flex items-center gap-2"><Database className="h-4 w-4" /> Database</h2>
 		<div className="space-y-2 text-sm">
 			<div className="flex justify-between py-2 border-b border-border"><span className="text-muted-foreground">Provider</span><span className="font-medium">Turso (libSQL)</span></div>

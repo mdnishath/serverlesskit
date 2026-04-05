@@ -74,14 +74,14 @@ export default function ProfilePage() {
 	if (!profile) return <p className="text-muted-foreground">Unable to load profile.</p>;
 
 	return (
-		<div className="mx-auto max-w-xl space-y-6">
+		<div className="mx-auto max-w-xl space-y-4 sm:space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold tracking-tight">My Profile</h1>
-				<p className="text-muted-foreground">Update your personal information</p>
+				<h1 className="text-xl font-bold tracking-tight sm:text-2xl">My Profile</h1>
+				<p className="text-sm text-muted-foreground">Update your personal information</p>
 			</div>
 
 			{/* Profile Info */}
-			<div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+			<div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-4 sm:p-6">
 				<div className="flex items-center gap-4">
 					<div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
 						<User className="h-6 w-6" />
@@ -115,7 +115,7 @@ export default function ProfilePage() {
 			</div>
 
 			{/* Change Password */}
-			<div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+			<div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-4 sm:p-6">
 				<h2 className="text-sm font-semibold flex items-center gap-2"><Key className="h-4 w-4" /> Change Password</h2>
 
 				{pwMessage && <div className="rounded-lg bg-green-500/10 border border-green-500/30 px-3 py-2 text-sm text-green-600">{pwMessage}</div>}

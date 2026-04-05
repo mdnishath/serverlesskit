@@ -94,9 +94,9 @@ export const CommandSearch = () => {
 	if (!open) return null;
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
+		<div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[15vh] sm:pt-[20vh]">
 			<div className="fixed inset-0 bg-black/50" onClick={() => setOpen(false)} />
-			<div className="relative w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl">
+			<div className="relative w-full max-w-sm rounded-xl border border-border bg-card shadow-2xl sm:max-w-lg">
 				<div className="flex items-center border-b border-border px-4">
 					<Search className="h-4 w-4 shrink-0 text-muted-foreground" />
 					<input

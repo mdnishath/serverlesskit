@@ -78,16 +78,16 @@ export const MediaPicker = ({ open, onClose, onSelect }: MediaPickerProps) => {
 	};
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-			<div className="w-full max-w-2xl rounded-xl border border-border bg-card shadow-xl">
-				<div className="flex items-center justify-between border-b border-border px-6 py-4">
+		<div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:px-4">
+			<div className="w-full max-h-[85vh] rounded-t-xl border border-border bg-card shadow-xl sm:max-w-2xl sm:rounded-xl">
+				<div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
 					<h2 className="text-lg font-semibold">Select Media</h2>
 					<button type="button" onClick={onClose} className="rounded p-1 hover:bg-accent">
 						<X className="h-5 w-5" />
 					</button>
 				</div>
 
-				<div className="p-6 space-y-4">
+				<div className="p-4 space-y-4 sm:p-6">
 					<div onClick={() => fileInputRef.current?.click()}
 						className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-6 hover:border-primary/50">
 						<Upload className="h-5 w-5 text-muted-foreground" />
@@ -99,7 +99,7 @@ export const MediaPicker = ({ open, onClose, onSelect }: MediaPickerProps) => {
 					</div>
 
 					{loading ? (
-						<div className="grid grid-cols-4 gap-2">
+						<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
 							{[1, 2, 3, 4].map((i) => (
 								<div key={i} className="h-24 animate-pulse rounded-lg bg-muted" />
 							))}
@@ -110,7 +110,7 @@ export const MediaPicker = ({ open, onClose, onSelect }: MediaPickerProps) => {
 							<p className="mt-2 text-sm text-muted-foreground">No media files yet. Upload one above.</p>
 						</div>
 					) : (
-						<div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto">
+						<div className="grid max-h-60 grid-cols-2 gap-2 overflow-y-auto sm:max-h-72 sm:grid-cols-4">
 							{items.map((item) => (
 								<button key={item.id} type="button" onClick={() => setSelected(item)}
 									className={cn(
@@ -132,7 +132,7 @@ export const MediaPicker = ({ open, onClose, onSelect }: MediaPickerProps) => {
 					)}
 				</div>
 
-				<div className="flex justify-end gap-3 border-t border-border px-6 py-4">
+				<div className="flex justify-end gap-3 border-t border-border px-4 py-3 sm:px-6 sm:py-4">
 					<button type="button" onClick={onClose}
 						className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-accent">
 						Cancel
