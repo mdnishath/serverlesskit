@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Puzzle, Settings, PowerOff, AlertCircle, CheckCircle2, Zap, Route } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Puzzle, PowerOff, AlertCircle, CheckCircle2, Zap, ChevronRight, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PluginInfo = {
@@ -13,6 +14,9 @@ type PluginInfo = {
 	error?: string;
 	hooksCount: number;
 	routesCount: number;
+	category: string;
+	features: string[];
+	hasSettings: boolean;
 };
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
@@ -22,8 +26,16 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; 
 	error: { icon: AlertCircle, color: 'text-destructive', label: 'Error' },
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+	automation: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+	content: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+	security: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+	developer: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+};
+
 /**
- * Client component for plugins page.
+ * Client component for plugins list page.
+ * Cards are clickable → navigate to plugin detail page.
  * @param props - initialPlugins from server, canManage permission
  */
 export const PluginsClient = ({
@@ -33,10 +45,12 @@ export const PluginsClient = ({
 	initialPlugins: PluginInfo[];
 	canManage: boolean;
 }) => {
+	const router = useRouter();
 	const [plugins, setPlugins] = useState<PluginInfo[]>(initialPlugins);
 	const [toggling, setToggling] = useState<string | null>(null);
 
-	const togglePlugin = async (name: string, currentlyActive: boolean) => {
+	const togglePlugin = async (e: React.MouseEvent, name: string, currentlyActive: boolean) => {
+		e.stopPropagation();
 		if (!canManage) return;
 		setToggling(name);
 		try {
@@ -53,11 +67,19 @@ export const PluginsClient = ({
 
 	return (
 		<div className="space-y-4 sm:space-y-6">
-			<div>
-				<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Plugins</h1>
-				<p className="text-sm text-muted-foreground">
-					Extend functionality with plugins{!canManage && ' — read only'}
-				</p>
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div>
+					<h1 className="text-xl font-bold tracking-tight sm:text-2xl">Plugins</h1>
+					<p className="text-sm text-muted-foreground">
+						Extend functionality with plugins{!canManage && ' — read only'}
+					</p>
+				</div>
+				{canManage && (
+					<button type="button" onClick={() => router.push('/plugins/upload')}
+						className="inline-flex items-center justify-center gap-2 rounded-lg border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:border-primary hover:text-foreground">
+						<Upload className="h-4 w-4" /> Upload Plugin
+					</button>
+				)}
 			</div>
 
 			{plugins.length === 0 ? (
@@ -74,49 +96,49 @@ export const PluginsClient = ({
 						const isToggling = toggling === plugin.name;
 
 						return (
-							<div key={plugin.name} className="rounded-xl border border-border bg-card p-5 shadow-sm">
+							<div key={plugin.name}
+								onClick={() => router.push(`/plugins/${plugin.name}`)}
+								className="group cursor-pointer rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/50">
 								<div className="flex items-start justify-between">
 									<div className="flex items-center gap-3">
 										<div className={cn(
-											'flex h-10 w-10 items-center justify-center rounded-lg',
+											'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
 											isActive ? 'bg-green-500/10' : 'bg-primary/10',
 										)}>
 											<Puzzle className={cn('h-5 w-5', isActive ? 'text-green-600' : 'text-primary')} />
 										</div>
 										<div>
-											<h3 className="text-sm font-semibold">{plugin.name}</h3>
+											<div className="flex items-center gap-2">
+												<h3 className="text-sm font-semibold">{plugin.name}</h3>
+												<span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', CATEGORY_COLORS[plugin.category] ?? CATEGORY_COLORS.developer)}>
+													{plugin.category}
+												</span>
+											</div>
 											<p className="text-xs text-muted-foreground">v{plugin.version}</p>
 										</div>
 									</div>
-									<div className={cn('flex items-center gap-1 text-xs', statusCfg.color)}>
-										<StatusIcon className="h-3.5 w-3.5" />{statusCfg.label}
-									</div>
+									<ChevronRight className="h-4 w-4 text-muted-foreground/30 transition-colors group-hover:text-primary" />
 								</div>
 
-								<p className="mt-3 text-sm text-muted-foreground">{plugin.description}</p>
+								<p className="mt-3 text-sm text-muted-foreground line-clamp-2">{plugin.description}</p>
 
-								{plugin.error && (
-									<div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs text-destructive">
-										{plugin.error}
+								{isActive && plugin.hooksCount > 0 && (
+									<div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+										<Zap className="h-3 w-3" /> {plugin.hooksCount} hooks active
 									</div>
 								)}
 
-								{isActive && (plugin.hooksCount > 0 || plugin.routesCount > 0) && (
-									<div className="mt-2 flex gap-3 text-xs text-muted-foreground">
-										{plugin.hooksCount > 0 && (
-											<span className="flex items-center gap-1"><Zap className="h-3 w-3" /> {plugin.hooksCount} hooks</span>
-										)}
-										{plugin.routesCount > 0 && (
-											<span className="flex items-center gap-1"><Route className="h-3 w-3" /> {plugin.routesCount} routes</span>
-										)}
-									</div>
+								{plugin.features.length > 0 && (
+									<p className="mt-2 text-xs text-muted-foreground">{plugin.features.length} features</p>
 								)}
 
 								<div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-									<span className="text-xs text-muted-foreground">by {plugin.author}</span>
+									<div className={cn('flex items-center gap-1 text-xs', statusCfg.color)}>
+										<StatusIcon className="h-3.5 w-3.5" />{statusCfg.label}
+									</div>
 									{canManage && (
 										<button type="button"
-											onClick={() => togglePlugin(plugin.name, isActive)}
+											onClick={(e) => togglePlugin(e, plugin.name, isActive)}
 											disabled={isToggling}
 											className={cn(
 												'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
