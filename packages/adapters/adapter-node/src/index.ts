@@ -1,7 +1,7 @@
-import type { Result } from '@serverlesskit/shared/result';
-import { appError, fail, ok } from '@serverlesskit/shared/result';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer } from 'node:http';
+import type { Result } from '@serverlesskit/shared/result';
+import { appError, fail, ok } from '@serverlesskit/shared/result';
 
 /** Node.js adapter configuration */
 export type NodeAdapterConfig = {
@@ -134,10 +134,16 @@ export const createNodeAdapter = (config: NodeAdapterConfig) => {
 						const result = await handler(parsed);
 						sendResponse(res, result.status, result.body);
 					} catch {
-						sendResponse(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+						sendResponse(res, 500, {
+							ok: false,
+							error: { code: 'INTERNAL_ERROR', message: 'Internal server error' },
+						});
 					}
 				} else {
-					sendResponse(res, 404, { ok: false, error: { code: 'NOT_FOUND', message: 'Route not found' } });
+					sendResponse(res, 404, {
+						ok: false,
+						error: { code: 'NOT_FOUND', message: 'Route not found' },
+					});
 				}
 			});
 
@@ -165,7 +171,7 @@ export const createNodeAdapter = (config: NodeAdapterConfig) => {
 				'services:',
 				'  app:',
 				'    build: .',
-				`    ports:`,
+				'    ports:',
 				`      - "${port}:${port}"`,
 				'    environment:',
 				'      - NODE_ENV=production',

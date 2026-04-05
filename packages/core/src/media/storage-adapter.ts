@@ -15,7 +15,9 @@ export type MediaMeta = {
 /** Interface that all storage adapters must implement */
 export type StorageAdapter = {
 	/** Uploads a file and returns its metadata */
-	upload: (file: { name: string; type: string; size: number; data: ArrayBuffer }) => Promise<Result<MediaMeta>>;
+	upload: (file: { name: string; type: string; size: number; data: ArrayBuffer }) => Promise<
+		Result<MediaMeta>
+	>;
 	/** Deletes a file by its ID */
 	delete: (id: string) => Promise<Result<void>>;
 	/** Gets the public URL for a file */

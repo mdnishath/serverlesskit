@@ -46,7 +46,7 @@ export type PluginAction = {
 };
 
 /** Hook event handler for plugins */
-export type PluginHookHandler = (payload: unknown) => Promise<unknown | void>;
+export type PluginHookHandler = (payload: unknown) => Promise<unknown | undefined>;
 
 /** API exposed to plugins during setup */
 export type PluginAPI = {

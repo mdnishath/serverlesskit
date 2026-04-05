@@ -18,7 +18,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

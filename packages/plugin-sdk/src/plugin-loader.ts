@@ -1,8 +1,8 @@
 import type { Result } from '@serverlesskit/shared/result';
 import { appError, fail, ok } from '@serverlesskit/shared/result';
 import type {
-	PluginAction,
 	PluginAPI,
+	PluginAction,
 	PluginDashboardPage,
 	PluginDefinition,
 	PluginFieldType,
@@ -59,10 +59,7 @@ export const createPluginRegistry = () => {
 		 * @param config - Optional plugin configuration
 		 * @returns Result indicating success or failure
 		 */
-		install: (
-			definition: PluginDefinition,
-			config: Record<string, unknown> = {},
-		): Result<void> => {
+		install: (definition: PluginDefinition, config: Record<string, unknown> = {}): Result<void> => {
 			const name = definition.manifest.name;
 			if (plugins.has(name)) {
 				return fail(appError('CONFLICT', `Plugin "${name}" is already installed`));
