@@ -1,20 +1,31 @@
 import type { ReactNode } from 'react';
-import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
-import { AuthProvider } from '@/lib/auth-context';
-import { CacheWarmer } from '@/components/cache-warmer';
+import { getServerAuth, getCollectionsData } from '@/lib/server-data';
+import { DashboardShell } from './dashboard-shell';
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+/**
+ * Server Component layout — fetches auth + collections from DB.
+ * Passes data to client shell for instant sidebar + header render.
+ */
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+	const [auth, collections] = await Promise.all([
+		getServerAuth(),
+		getCollectionsData(),
+	]);
+
+	const initialUser = auth ? {
+		id: auth.user.id,
+		name: auth.user.name,
+		email: auth.user.email,
+		role: auth.user.role,
+		permissions: auth.permissions,
+	} : null;
+
+	const initialCollections = collections.map((c) => ({ slug: c.slug, name: c.name }));
+
 	return (
-		<AuthProvider>
-			<CacheWarmer />
-			<div className="flex h-screen overflow-hidden">
-				<Sidebar />
-				<div className="flex flex-1 flex-col overflow-hidden">
-					<Header />
-					<main className="flex-1 overflow-y-auto p-6">{children}</main>
-				</div>
-			</div>
-		</AuthProvider>
+		<DashboardShell initialUser={initialUser} initialCollections={initialCollections}>
+			{children}
+		</DashboardShell>
 	);
 }

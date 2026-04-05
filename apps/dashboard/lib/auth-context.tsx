@@ -25,13 +25,14 @@ const AuthContext = createContext<AuthContextType>({
 
 /**
  * Provides auth state to all dashboard pages.
- * Fetches /api/auth/me ONCE on mount, shares across all children.
- * @param props - children
+ * Accepts optional initialUser from server for instant render.
+ * Falls back to fetching /api/auth/me on client if no initialUser.
+ * @param props - children, optional initialUser from server
  * @returns AuthProvider component
  */
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-	const [user, setUser] = useState<AuthUser | null>(null);
-	const [loading, setLoading] = useState(true);
+export const AuthProvider = ({ children, initialUser }: { children: ReactNode; initialUser?: AuthUser | null }) => {
+	const [user, setUser] = useState<AuthUser | null>(initialUser ?? null);
+	const [loading, setLoading] = useState(!initialUser);
 
 	const refresh = async () => {
 		try {

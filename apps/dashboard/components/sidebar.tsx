@@ -17,11 +17,12 @@ type ContentType = { slug: string; name: string };
 
 /**
  * Collapsible sidebar with role-based visibility.
- * Uses shared AuthProvider — no separate /api/auth/me fetch.
- * Prefetches route data on hover for instant navigation.
+ * Accepts initialCollections from server layout for instant render.
+ * Uses useCachedFetch for background refresh after hydration.
+ * @param props - optional initialCollections from server
  * @returns Sidebar component
  */
-export const Sidebar = () => {
+export const Sidebar = ({ initialCollections = [] }: { initialCollections?: ContentType[] }) => {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { user } = useAuth();
@@ -29,9 +30,9 @@ export const Sidebar = () => {
 	const [contentOpen, setContentOpen] = useState(true);
 	const [adminOpen, setAdminOpen] = useState(true);
 
-	/* Use cached fetch instead of raw fetch — no refetch on every navigation */
-	const { data: colData } = useCachedFetch<ContentType[]>('/api/collections');
-	const contentTypes = (colData ?? []).map((c) => ({ slug: c.slug, name: c.name }));
+	/* Background refresh; initialCollections used for instant SSR render */
+	const { data: freshData } = useCachedFetch<ContentType[]>('/api/collections');
+	const contentTypes = (freshData ?? initialCollections).map((c) => ({ slug: c.slug, name: c.name }));
 
 	useEffect(() => {
 		const stored = localStorage.getItem('sidebar-collapsed');
