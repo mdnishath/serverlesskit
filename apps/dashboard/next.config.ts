@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
 		'@serverlesskit/api',
 		'@serverlesskit/db',
 	],
+	/** Allow images from uploads path */
+	images: {
+		unoptimized: true,
+	},
+	/** Vercel serverless compatibility */
+	serverExternalPackages: ['@libsql/client'],
 };
 
 export default nextConfig;

@@ -1,11 +1,11 @@
-import { createClient } from '@libsql/client';
+import { createClient, type Client } from '@libsql/client';
 
 /**
  * Creates a singleton DB client for use in API routes.
- * Uses environment variables or falls back to local SQLite.
+ * Supports both Turso cloud (production) and local SQLite (development).
  * @returns libSQL Client instance
  */
-const createDbInstance = () => {
+const createDbInstance = (): Client => {
 	const url = process.env.TURSO_URL ?? process.env.DATABASE_URL ?? 'file:./local.db';
 	const authToken = process.env.TURSO_AUTH_TOKEN;
 
@@ -17,13 +17,13 @@ const createDbInstance = () => {
 };
 
 /** Shared database client singleton */
-let dbInstance: ReturnType<typeof createClient> | null = null;
+let dbInstance: Client | null = null;
 
 /**
  * Gets the shared database client.
  * @returns The libSQL client instance
  */
-export const getDb = () => {
+export const getDb = (): Client => {
 	if (!dbInstance) {
 		dbInstance = createDbInstance();
 	}

@@ -6,14 +6,18 @@ import { getDb } from '@/lib/db';
 import { requirePermission } from '@/lib/api-auth';
 
 const UPLOADS_DIR = join(process.cwd(), 'public', 'uploads');
+const IS_VERCEL = !!process.env.VERCEL;
 
 /**
- * POST /api/upload — Handles file uploads, saves to public/uploads/ and persists metadata to DB.
+ * POST /api/upload — Handles file uploads.
+ * On Vercel: stores file as base64 in DB (read-only filesystem).
+ * Locally: saves to public/uploads/ directory.
  */
 export async function POST(request: Request) {
 	try {
 		const auth = await requirePermission('media', 'create');
 		if ('error' in auth) return auth.error;
+
 		const formData = await request.formData();
 		const file = formData.get('file') as File | null;
 
@@ -33,10 +37,18 @@ export async function POST(request: Request) {
 
 		const id = crypto.randomUUID();
 		const filename = `${id}-${file.name}`;
-
-		await mkdir(UPLOADS_DIR, { recursive: true });
 		const buffer = Buffer.from(await file.arrayBuffer());
-		await writeFile(join(UPLOADS_DIR, filename), buffer);
+		let url: string;
+
+		if (IS_VERCEL) {
+			// Store in DB as base64 (Vercel has read-only fs)
+			url = `data:${file.type};base64,${buffer.toString('base64')}`;
+		} else {
+			// Save to disk locally
+			await mkdir(UPLOADS_DIR, { recursive: true });
+			await writeFile(join(UPLOADS_DIR, filename), buffer);
+			url = `/uploads/${filename}`;
+		}
 
 		const media = {
 			id,
@@ -44,7 +56,7 @@ export async function POST(request: Request) {
 			originalName: file.name,
 			mimeType: file.type,
 			size: file.size,
-			url: `/uploads/${filename}`,
+			url,
 			createdAt: new Date().toISOString(),
 		};
 
