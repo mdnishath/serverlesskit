@@ -1,0 +1,48 @@
+{
+  "name": "@serverlesskit/db",
+  "version": "0.1.0",
+  "description": "Database layer for ServerlessKit — Drizzle ORM + Turso/SQLite",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./schema-to-drizzle": {
+      "types": "./dist/schema-to-drizzle.d.ts",
+      "import": "./dist/schema-to-drizzle.js"
+    },
+    "./migrate": {
+      "types": "./dist/migrate.d.ts",
+      "import": "./dist/migrate.js"
+    },
+    "./types": {
+      "types": "./dist/db.types.d.ts",
+      "import": "./dist/db.types.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "dev": "tsc --project tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "drizzle-orm": "^0.39.0",
+    "nanoid": "^5.1.0"
+  },
+  "devDependencies": {
+    "@serverlesskit/core": "workspace:*",
+    "@serverlesskit/shared": "workspace:*",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "@biomejs/biome": "^1.9.4"
+  }
+}

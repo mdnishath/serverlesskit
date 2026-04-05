@@ -22,7 +22,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@biomejs/biome"
+      "@biomejs/biome",
+      "esbuild"
     ]
   },
   "devDependencies": {
