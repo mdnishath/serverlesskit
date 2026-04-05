@@ -1,7 +1,13 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+	transpilePackages: [
+		'@serverlesskit/shared',
+		'@serverlesskit/core',
+		'@serverlesskit/auth',
+		'@serverlesskit/api',
+		'@serverlesskit/db',
+	],
 };
 
 export default nextConfig;

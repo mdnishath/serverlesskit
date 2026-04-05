@@ -16,6 +16,10 @@
     "./hooks": {
       "types": "./dist/hooks/index.d.ts",
       "import": "./dist/hooks/index.js"
+    },
+    "./media": {
+      "types": "./dist/media/index.d.ts",
+      "import": "./dist/media/index.js"
     }
   },
   "files": ["dist"],
