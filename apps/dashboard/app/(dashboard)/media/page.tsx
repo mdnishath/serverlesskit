@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Upload, Image, FileText, Film, Music, Search, Trash2, X, File, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,27 +40,21 @@ const getCategoryFromMime = (mime: string): FilterType => {
 };
 
 import { usePermissions } from '@/lib/use-permissions';
+import { useCachedFetch } from '@/lib/use-cached-fetch';
 
 export default function MediaPage() {
-	const [items, setItems] = useState<MediaItem[]>([]);
+	const { data: items, loading, refetch: refetchMedia } = useCachedFetch<MediaItem[]>('/api/media');
 	const [filter, setFilter] = useState<FilterType>('all');
 	const [search, setSearch] = useState('');
 	const [selected, setSelected] = useState<MediaItem | null>(null);
 	const [uploading, setUploading] = useState(false);
 	const [dragOver, setDragOver] = useState(false);
-	const [loading, setLoading] = useState(true);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const { can } = usePermissions();
 	const canUpload = can('media', 'create');
 	const canDeleteMedia = can('media', 'delete');
 
-	useEffect(() => {
-		fetch('/api/media').then((r) => r.json())
-			.then((json) => { if (json.ok) setItems(json.data); })
-			.finally(() => setLoading(false));
-	}, []);
-
-	const filtered = items.filter((item) => {
+	const filtered = (items ?? []).filter((item) => {
 		if (filter !== 'all' && getCategoryFromMime(item.mimeType) !== filter) return false;
 		if (search && !item.originalName.toLowerCase().includes(search.toLowerCase())) return false;
 		return true;
@@ -74,7 +68,7 @@ export default function MediaPage() {
 			try {
 				const res = await fetch('/api/upload', { method: 'POST', body: formData });
 				const json = await res.json();
-				if (json.ok) setItems((prev) => [json.data, ...prev]);
+				if (json.ok) refetchMedia();
 			} catch { /* upload failed */ }
 		}
 		setUploading(false);
@@ -92,7 +86,7 @@ export default function MediaPage() {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ id }),
 		});
-		setItems((prev) => prev.filter((i) => i.id !== id));
+		refetchMedia();
 		if (selected?.id === id) setSelected(null);
 	};
 
@@ -176,7 +170,7 @@ export default function MediaPage() {
 							<div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12">
 								<Image className="h-12 w-12 text-muted-foreground/50" />
 								<p className="mt-4 text-sm text-muted-foreground">
-									{items.length === 0 ? 'No media files yet' : 'No files match your filter'}
+									{(items ?? []).length === 0 ? 'No media files yet' : 'No files match your filter'}
 								</p>
 							</div>
 						) : (

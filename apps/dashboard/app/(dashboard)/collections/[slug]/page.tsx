@@ -2,8 +2,9 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { Plus, ArrowLeft, Search, Trash2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePermissions, hasPerm } from '@/lib/use-permissions';
+import { useCachedFetch } from '@/lib/use-cached-fetch';
 
 type EntryRow = { id: string; [key: string]: unknown };
 type CollectionMeta = { name: string; slug: string; fields: Record<string, { type: string }> };
@@ -12,34 +13,12 @@ export default function CollectionEntriesPage() {
 	const params = useParams();
 	const router = useRouter();
 	const slug = params.slug as string;
-	const [entries, setEntries] = useState<EntryRow[]>([]);
-	const [collection, setCollection] = useState<CollectionMeta | null>(null);
+	const { data: allCollections } = useCachedFetch<CollectionMeta[]>('/api/collections');
+	const { data: entries, loading, refetch: refetchEntries } = useCachedFetch<EntryRow[]>(`/api/content/${slug}?limit=100`, [slug]);
+	const collection = (allCollections ?? []).find((c) => c.slug === slug) ?? null;
 	const [search, setSearch] = useState('');
 	const [selected, setSelected] = useState<Set<string>>(new Set());
-	const [loading, setLoading] = useState(true);
 	const { perms } = usePermissions();
-
-	useEffect(() => {
-		const load = async () => {
-			try {
-				const [colRes, entryRes] = await Promise.all([
-					fetch('/api/collections'),
-					fetch(`/api/content/${slug}?limit=100`),
-				]);
-				const colJson = await colRes.json();
-				const entryJson = await entryRes.json();
-
-				if (colJson.ok) {
-					const match = colJson.data.find((c: CollectionMeta) => c.slug === slug);
-					if (match) setCollection(match);
-				}
-				if (entryJson.ok) setEntries(entryJson.data ?? []);
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, [slug]);
 	const canCreate = hasPerm(perms, slug, 'create');
 	const canEdit = hasPerm(perms, slug, 'update');
 	const canDelete = hasPerm(perms, slug, 'delete');
@@ -51,9 +30,10 @@ export default function CollectionEntriesPage() {
 	const fieldNames = fieldEntries.map(([name]) => name);
 	const fieldTypes = Object.fromEntries(fieldEntries.map(([name, def]) => [name, def.type]));
 
+	const allEntries = entries ?? [];
 	const filtered = search
-		? entries.filter((e) => Object.values(e).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase())))
-		: entries;
+		? allEntries.filter((e) => Object.values(e).some((v) => String(v ?? '').toLowerCase().includes(search.toLowerCase())))
+		: allEntries;
 
 	const toggleSelect = (id: string) => {
 		const next = new Set(selected);
@@ -67,14 +47,14 @@ export default function CollectionEntriesPage() {
 
 	const handleBulkDelete = async () => {
 		for (const id of selected) await fetch(`/api/content/${slug}/${id}`, { method: 'DELETE' });
-		setEntries((prev) => prev.filter((e) => !selected.has(e.id)));
+		refetchEntries();
 		setSelected(new Set());
 	};
 
 	const handleDeleteOne = async (id: string) => {
 		if (!confirm('Delete this entry?')) return;
 		await fetch(`/api/content/${slug}/${id}`, { method: 'DELETE' });
-		setEntries((prev) => prev.filter((e) => e.id !== id));
+		refetchEntries();
 	};
 
 	const renderCell = (fieldName: string, val: unknown) => {
@@ -96,7 +76,7 @@ export default function CollectionEntriesPage() {
 					</button>
 					<div>
 						<h1 className="text-2xl font-bold tracking-tight">{displayName}</h1>
-						<p className="text-muted-foreground">{entries.length} entries</p>
+						<p className="text-muted-foreground">{(entries ?? []).length} entries</p>
 					</div>
 				</div>
 				{canCreate && (

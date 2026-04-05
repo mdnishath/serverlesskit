@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 /** Simple in-memory cache shared across all hook instances */
 const cache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_TTL = 30_000; // 30 seconds
+const CACHE_TTL = 5 * 60_000; // 5 minutes
 
 /**
  * Fetches data with client-side caching.
