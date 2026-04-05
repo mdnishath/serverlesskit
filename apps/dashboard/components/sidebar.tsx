@@ -1,20 +1,24 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
 	LayoutDashboard, FolderOpen, Image, Users, Shield, Puzzle, Settings,
 	ChevronLeft, ChevronRight, ChevronDown, Database, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { hasPerm } from '@/lib/use-permissions';
+import { useCachedFetch } from '@/lib/use-cached-fetch';
+import { prefetchRoute } from '@/lib/prefetch';
 
 type ContentType = { slug: string; name: string };
 
 /**
  * Collapsible sidebar with role-based visibility.
  * Uses shared AuthProvider — no separate /api/auth/me fetch.
+ * Prefetches route data on hover for instant navigation.
  * @returns Sidebar component
  */
 export const Sidebar = () => {
@@ -22,20 +26,17 @@ export const Sidebar = () => {
 	const router = useRouter();
 	const { user } = useAuth();
 	const [collapsed, setCollapsed] = useState(false);
-	const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
 	const [contentOpen, setContentOpen] = useState(true);
 	const [adminOpen, setAdminOpen] = useState(true);
+
+	/* Use cached fetch instead of raw fetch — no refetch on every navigation */
+	const { data: colData } = useCachedFetch<ContentType[]>('/api/collections');
+	const contentTypes = (colData ?? []).map((c) => ({ slug: c.slug, name: c.name }));
 
 	useEffect(() => {
 		const stored = localStorage.getItem('sidebar-collapsed');
 		if (stored === 'true') setCollapsed(true);
 	}, []);
-
-	useEffect(() => {
-		fetch('/api/collections').then((r) => r.json())
-			.then((j) => { if (j.ok) setContentTypes(j.data.map((c: ContentType) => ({ slug: c.slug, name: c.name }))); })
-			.catch(() => {});
-	}, [pathname]);
 
 	const toggle = () => {
 		const next = !collapsed;
@@ -48,16 +49,26 @@ export const Sidebar = () => {
 	const isActive = (href: string) => pathname === href || (href !== '/' && pathname.startsWith(href));
 
 	const navClass = (href: string) => cn(
-		'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer',
+		'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
 		isActive(href) ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
 		collapsed && 'justify-center px-2',
 	);
 
+	/** Prefetch both the route JS chunk and API data on hover */
+	const handlePrefetch = useCallback((href: string) => {
+		router.prefetch(href);
+		prefetchRoute(href);
+	}, [router]);
+
 	const NavItem = ({ href, icon: Icon, label }: { href: string; icon: typeof LayoutDashboard; label: string }) => (
-		<button type="button" onClick={() => router.push(href)} className={navClass(href)} title={collapsed ? label : undefined}>
+		<Link href={href} prefetch={true}
+			className={navClass(href)}
+			title={collapsed ? label : undefined}
+			onMouseEnter={() => handlePrefetch(href)}
+			onFocus={() => handlePrefetch(href)}>
 			<Icon className="h-4 w-4 shrink-0" />
 			{!collapsed && <span>{label}</span>}
-		</button>
+		</Link>
 	);
 
 	const SectionHeader = ({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) => {
@@ -87,9 +98,9 @@ export const Sidebar = () => {
 		)}>
 			<div className="flex h-14 items-center justify-between border-b border-border px-4">
 				{!collapsed && (
-					<button type="button" onClick={() => router.push('/')} className="flex items-center gap-2 font-semibold">
+					<Link href="/" className="flex items-center gap-2 font-semibold">
 						<Database className="h-5 w-5" /><span>ServerlessKit</span>
-					</button>
+					</Link>
 				)}
 				<button type="button" onClick={toggle} className="rounded-md p-1.5 hover:bg-accent"
 					aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>

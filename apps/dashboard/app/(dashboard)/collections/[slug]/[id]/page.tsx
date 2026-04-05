@@ -6,8 +6,10 @@ import { useState, useEffect } from 'react';
 import { DynamicField } from '@/components/collections/dynamic-field';
 import type { FieldTypeName } from '@/components/collections/field-type-selector';
 import { usePermissions, hasPerm } from '@/lib/use-permissions';
+import { useCachedFetch } from '@/lib/use-cached-fetch';
 
 type FieldDef = { name: string; type: FieldTypeName; required: boolean; options?: string[] };
+type CollectionMeta = { slug: string; fields: Record<string, Record<string, unknown>> };
 
 export default function EntryEditorPage() {
 	const params = useParams();
@@ -16,39 +18,39 @@ export default function EntryEditorPage() {
 	const entryId = params.id as string;
 	const isNew = entryId === 'new';
 
+	/* Collections data is already cached from sidebar + entries list — instant */
+	const { data: allCollections } = useCachedFetch<CollectionMeta[]>('/api/collections');
+	const collection = (allCollections ?? []).find((c) => c.slug === slug);
+
 	const [fields, setFields] = useState<FieldDef[]>([]);
 	const [values, setValues] = useState<Record<string, unknown>>({});
 	const [saving, setSaving] = useState(false);
-	const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState(!isNew);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [error, setError] = useState('');
 	const { perms: myPerms } = usePermissions();
 
+	/* Derive fields from cached collection data */
 	useEffect(() => {
+		if (!collection?.fields) return;
+		setFields(Object.entries(collection.fields).map(
+			([name, def]) => ({
+				name,
+				type: def.type as FieldTypeName,
+				required: def.required !== false,
+				options: def.options as string[] | undefined,
+			}),
+		));
+	}, [collection]);
+
+	/* Fetch entry data (per-entry, not cached globally) */
+	useEffect(() => {
+		if (isNew) { setLoading(false); return; }
 		const load = async () => {
 			try {
-				const colRes = await fetch('/api/collections');
-				const colJson = await colRes.json();
-
-				if (colJson.ok) {
-					const match = colJson.data.find((c: { slug: string }) => c.slug === slug);
-					if (match?.fields) {
-						setFields(Object.entries(match.fields as Record<string, Record<string, unknown>>).map(
-							([name, def]) => ({
-								name,
-								type: def.type as FieldTypeName,
-								required: def.required !== false,
-								options: def.options as string[] | undefined,
-							}),
-						));
-					}
-				}
-
-				if (!isNew) {
-					const entryRes = await fetch(`/api/content/${slug}/${entryId}`);
-					const entryJson = await entryRes.json();
-					if (entryJson.ok && entryJson.data) setValues(entryJson.data);
-				}
+				const entryRes = await fetch(`/api/content/${slug}/${entryId}`);
+				const entryJson = await entryRes.json();
+				if (entryJson.ok && entryJson.data) setValues(entryJson.data);
 			} finally {
 				setLoading(false);
 			}
