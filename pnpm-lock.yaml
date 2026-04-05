@@ -67,6 +67,36 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/adapters/adapter-node:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^1.9.4
+        version: 1.9.4
+      '@serverlesskit/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@25.5.2)(jiti@2.6.1)(lightningcss@1.32.0)
+
+  packages/adapters/adapter-vercel:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^1.9.4
+        version: 1.9.4
+      '@serverlesskit/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@25.5.2)(jiti@2.6.1)(lightningcss@1.32.0)
+
   packages/api:
     devDependencies:
       '@biomejs/biome':
