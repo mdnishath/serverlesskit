@@ -47,6 +47,9 @@ importers:
       '@serverlesskit/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@serverlesskit/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
       '@serverlesskit/shared':
         specifier: workspace:*
         version: link:../../packages/shared

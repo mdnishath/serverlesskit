@@ -19,6 +19,7 @@
     "@serverlesskit/auth": "workspace:*",
     "@serverlesskit/core": "workspace:*",
     "@serverlesskit/db": "workspace:*",
+    "@serverlesskit/plugin-sdk": "workspace:*",
     "@serverlesskit/shared": "workspace:*",
     "clsx": "^2.1.0",
     "lucide-react": "^0.500.0",

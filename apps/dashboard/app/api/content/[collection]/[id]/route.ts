@@ -3,6 +3,7 @@ import { findOne, updateEntry, deleteEntry } from '@serverlesskit/core/crud';
 import { getDb } from '@/lib/db';
 import { getCollection } from '@/lib/schema-store';
 import { requirePermission } from '@/lib/api-auth';
+import { getHookManager } from '@/lib/plugin-runtime';
 
 type RouteParams = { params: Promise<{ collection: string; id: string }> };
 
@@ -49,7 +50,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 }
 
 /**
- * PATCH /api/content/[collection]/[id] — Update an entry.
+ * PATCH /api/content/[collection]/[id] — Update an entry (with plugin hooks).
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
 	try {
@@ -66,7 +67,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
 		const body = await request.json();
 		const db = getDb();
-		const result = await updateEntry({ client: db }, collection, id, body);
+		const hooks = await getHookManager();
+		const context = { userId: auth.user.id, role: auth.user.role };
+		const result = await updateEntry({ client: db }, collection, id, body, context, hooks);
 
 		if (!result.ok) {
 			const status = result.error.code === 'NOT_FOUND' ? 404
@@ -88,7 +91,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 /**
- * DELETE /api/content/[collection]/[id] — Delete an entry.
+ * DELETE /api/content/[collection]/[id] — Delete an entry (with plugin hooks).
  */
 export async function DELETE(_request: Request, { params }: RouteParams) {
 	try {
@@ -104,7 +107,9 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 		}
 
 		const db = getDb();
-		const result = await deleteEntry({ client: db }, collection, id);
+		const hooks = await getHookManager();
+		const context = { userId: auth.user.id, role: auth.user.role };
+		const result = await deleteEntry({ client: db }, collection, id, context, hooks);
 
 		if (!result.ok) {
 			const status = result.error.code === 'NOT_FOUND' ? 404 : 500;

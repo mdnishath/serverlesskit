@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
 		'@serverlesskit/auth',
 		'@serverlesskit/api',
 		'@serverlesskit/db',
+		'@serverlesskit/plugin-sdk',
 	],
 	/** Allow images from uploads path */
 	images: {

@@ -3,6 +3,7 @@ import { createEntry, findMany } from '@serverlesskit/core/crud';
 import { getDb } from '@/lib/db';
 import { getCollection } from '@/lib/schema-store';
 import { requirePermission } from '@/lib/api-auth';
+import { getHookManager } from '@/lib/plugin-runtime';
 
 type RouteParams = { params: Promise<{ collection: string }> };
 
@@ -48,7 +49,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 }
 
 /**
- * POST /api/content/[collection] — Create a new entry.
+ * POST /api/content/[collection] — Create a new entry (with plugin hooks).
  */
 export async function POST(request: Request, { params }: RouteParams) {
 	try {
@@ -66,7 +67,9 @@ export async function POST(request: Request, { params }: RouteParams) {
 
 		const body = await request.json();
 		const db = getDb();
-		const result = await createEntry({ client: db }, collection, body);
+		const hooks = await getHookManager();
+		const context = { userId: auth.user.id, role: auth.user.role };
+		const result = await createEntry({ client: db }, collection, body, context, hooks);
 
 		if (!result.ok) {
 			return NextResponse.json(
