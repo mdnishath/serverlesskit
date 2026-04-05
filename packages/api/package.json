@@ -1,0 +1,54 @@
+{
+  "name": "@serverlesskit/api",
+  "version": "0.1.0",
+  "description": "Auto-generated REST API layer for ServerlessKit",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./rest/response": {
+      "types": "./dist/rest/response.d.ts",
+      "import": "./dist/rest/response.js"
+    },
+    "./rest/query-parser": {
+      "types": "./dist/rest/query-parser.d.ts",
+      "import": "./dist/rest/query-parser.js"
+    },
+    "./rest/route-generator": {
+      "types": "./dist/rest/route-generator.d.ts",
+      "import": "./dist/rest/route-generator.js"
+    },
+    "./types": {
+      "types": "./dist/api.types.d.ts",
+      "import": "./dist/api.types.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "dev": "tsc --project tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@libsql/client": ">=0.14.0"
+  },
+  "peerDependenciesMeta": {
+    "@libsql/client": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@libsql/client": "^0.14.0",
+    "@serverlesskit/core": "workspace:*",
+    "@serverlesskit/auth": "workspace:*",
+    "@serverlesskit/shared": "workspace:*",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "@biomejs/biome": "^1.9.4"
+  }
+}
