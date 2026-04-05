@@ -21,6 +21,25 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/auth:
+    dependencies:
+      nanoid:
+        specifier: ^5.1.0
+        version: 5.1.7
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^1.9.4
+        version: 1.9.4
+      '@serverlesskit/shared':
+        specifier: workspace:*
+        version: link:../shared
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@25.5.2)
+
   packages/core:
     dependencies:
       nanoid:
