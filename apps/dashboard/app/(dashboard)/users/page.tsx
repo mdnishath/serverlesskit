@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Plus, Search, User, Mail, Trash2, Pencil, Key, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCachedFetch } from '@/lib/use-cached-fetch';
+import { useAuth } from '@/lib/auth-context';
 
 type UserRecord = {
 	id: string;
@@ -31,11 +33,12 @@ const formatDate = (iso: string) => {
 };
 
 export default function UsersPage() {
-	const [users, setUsers] = useState<UserRecord[]>([]);
-	const [me, setMe] = useState<CurrentUser | null>(null);
+	const { user: authUser } = useAuth();
+	const { data: users, loading, refetch: refetchUsers } = useCachedFetch<UserRecord[]>('/api/users');
+	const { data: rolesData } = useCachedFetch<{ name: string }[]>('/api/roles');
 	const [search, setSearch] = useState('');
-	const [loading, setLoading] = useState(true);
-	const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+	const availableRoles = (rolesData ?? []).map((r) => r.name);
+	const me: CurrentUser | null = authUser ? { id: authUser.id, role: authUser.role } : null;
 
 	// Modal states
 	const [modal, setModal] = useState<'create' | 'edit' | 'password' | null>(null);
@@ -47,23 +50,11 @@ export default function UsersPage() {
 	const [formError, setFormError] = useState('');
 	const [formLoading, setFormLoading] = useState(false);
 
-	useEffect(() => {
-		Promise.all([
-			fetch('/api/users').then((r) => r.json()),
-			fetch('/api/roles').then((r) => r.json()),
-			fetch('/api/auth/me').then((r) => r.json()),
-		]).then(([usersJson, rolesJson, meJson]) => {
-			if (usersJson.ok) setUsers(usersJson.data);
-			if (rolesJson.ok) setAvailableRoles(rolesJson.data.map((r: { name: string }) => r.name));
-			if (meJson.ok) setMe({ id: meJson.data.id, role: meJson.data.role });
-		}).finally(() => setLoading(false));
-	}, []);
-
 	const myLevel = me ? getLevel(me.role) : 0;
 	const canManage = (targetRole: string) => myLevel > getLevel(targetRole);
 	const assignableRoles = availableRoles.filter((r) => getLevel(r) < myLevel);
 
-	const filtered = users.filter(
+	const filtered = (users ?? []).filter(
 		(u) => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()),
 	);
 
@@ -93,7 +84,7 @@ export default function UsersPage() {
 		const json = await res.json();
 		setFormLoading(false);
 		if (!json.ok) { setFormError(json.error?.message ?? 'Failed'); return; }
-		setUsers((prev) => [json.data, ...prev]);
+		refetchUsers();
 		closeModal();
 	};
 
@@ -112,8 +103,7 @@ export default function UsersPage() {
 		const json = await res.json();
 		setFormLoading(false);
 		if (!json.ok) { setFormError(json.error?.message ?? 'Failed'); return; }
-		setUsers((prev) => prev.map((u) => u.id === editUser.id
-			? { ...u, name: formName, email: formEmail, role: me?.id === editUser.id ? u.role : formRole } : u));
+		refetchUsers();
 		closeModal();
 	};
 
@@ -140,7 +130,7 @@ export default function UsersPage() {
 		});
 		const json = await res.json();
 		if (!json.ok) { alert(json.error?.message ?? 'Failed to delete'); return; }
-		setUsers((prev) => prev.filter((u) => u.id !== id));
+		refetchUsers();
 	};
 
 	const handleToggleActive = async (user: UserRecord) => {
@@ -150,7 +140,7 @@ export default function UsersPage() {
 			body: JSON.stringify({ id: user.id, isActive: !user.isActive }),
 		});
 		const json = await res.json();
-		if (json.ok) setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
+		if (json.ok) refetchUsers();
 	};
 
 	return (

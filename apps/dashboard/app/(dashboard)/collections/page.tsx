@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { Plus, FolderOpen, ExternalLink, Trash2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePermissions } from '@/lib/use-permissions';
+import { useCachedFetch } from '@/lib/use-cached-fetch';
 
 type CollectionItem = { slug: string; name: string; description: string; fieldCount: number; timestamps: boolean; softDelete: boolean };
 
@@ -13,21 +14,14 @@ export default function CollectionsPage() {
 	const canCreate = can('collections', 'create');
 	const canDelete = can('collections', 'delete');
 
-	const [collections, setCollections] = useState<CollectionItem[]>([]);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		fetch('/api/collections').then((r) => r.json())
-			.then((json) => { if (json.ok) setCollections(json.data); })
-			.finally(() => setLoading(false));
-	}, []);
+	const { data: collections, loading, invalidate } = useCachedFetch<CollectionItem[]>('/api/collections');
 
 	const handleDelete = async (slug: string, name: string) => {
 		if (!canDelete) { alert('You do not have permission to delete content types'); return; }
 		if (!confirm(`Delete content type "${name}"? This will remove all its data.`)) return;
 		const res = await fetch(`/api/collections/${slug}`, { method: 'DELETE' });
 		const json = await res.json();
-		if (json.ok) setCollections((prev) => prev.filter((c) => c.slug !== slug));
+		if (json.ok) invalidate();
 		else alert(json.error?.message ?? 'Failed to delete');
 	};
 
@@ -48,7 +42,7 @@ export default function CollectionsPage() {
 
 			{loading ? (
 				<div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-xl border border-border bg-muted" />)}</div>
-			) : collections.length === 0 ? (
+			) : (collections ?? []).length === 0 ? (
 				<div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-12">
 					<FolderOpen className="h-12 w-12 text-muted-foreground/50" />
 					<h3 className="mt-4 text-lg font-semibold">No content types yet</h3>
@@ -74,7 +68,7 @@ export default function CollectionsPage() {
 							</tr>
 						</thead>
 						<tbody>
-							{collections.map((col) => (
+							{(collections ?? []).map((col) => (
 								<tr key={col.slug} className="border-b border-border last:border-0 hover:bg-muted/50">
 									<td className="px-6 py-4">
 										<button type="button" onClick={() => router.push(`/collections/${col.slug}`)} className="font-medium hover:underline text-left">

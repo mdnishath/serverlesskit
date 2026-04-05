@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Plus, Shield, Check, X, Trash2, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/lib/use-permissions';
+import { useCachedFetch } from '@/lib/use-cached-fetch';
 
 type Role = { name: string; description: string; isBuiltIn: boolean; permissions: string[] };
 type ContentType = { slug: string; name: string };
@@ -20,10 +21,12 @@ export default function RolesPage() {
 	const myCanUpdate = can('roles', 'update');
 	const myCanDelete = can('roles', 'delete');
 
-	const [roles, setRoles] = useState<Role[]>([]);
-	const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
+	const { data: roles, loading: rolesLoading, refetch: refetchRoles } = useCachedFetch<Role[]>('/api/roles');
+	const { data: colData } = useCachedFetch<ContentType[]>('/api/collections');
+	const contentTypes = (colData ?? []).map((c) => ({ slug: c.slug, name: c.name }));
+	const loading = rolesLoading;
+
 	const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-	const [loading, setLoading] = useState(true);
 	const [showCreate, setShowCreate] = useState(false);
 	const [newName, setNewName] = useState('');
 	const [newDesc, setNewDesc] = useState('');
@@ -31,16 +34,6 @@ export default function RolesPage() {
 	const [editPerms, setEditPerms] = useState<string[]>([]);
 	const [saving, setSaving] = useState(false);
 	const [dirty, setDirty] = useState(false);
-
-	useEffect(() => {
-		Promise.all([
-			fetch('/api/roles').then((r) => r.json()),
-			fetch('/api/collections').then((r) => r.json()),
-		]).then(([rolesJson, colJson]) => {
-			if (rolesJson.ok) setRoles(rolesJson.data);
-			if (colJson.ok) setContentTypes(colJson.data.map((c: ContentType) => ({ slug: c.slug, name: c.name })));
-		}).finally(() => setLoading(false));
-	}, []);
 
 	const selectRole = (role: Role) => {
 		setSelectedRole(role); setEditPerms([...role.permissions]); setDirty(false);
@@ -66,7 +59,7 @@ export default function RolesPage() {
 		});
 		const json = await res.json();
 		if (json.ok) {
-			setRoles((prev) => prev.map((r) => r.name === selectedRole.name ? { ...r, permissions: editPerms } : r));
+			refetchRoles();
 			setSelectedRole({ ...selectedRole, permissions: editPerms }); setDirty(false);
 		}
 		setSaving(false);
@@ -82,14 +75,14 @@ export default function RolesPage() {
 		});
 		const json = await res.json();
 		if (!json.ok) { setCreateError(json.error?.message ?? 'Failed'); return; }
-		setRoles((prev) => [...prev, json.data]); selectRole(json.data);
+		refetchRoles(); selectRole(json.data);
 		setShowCreate(false); setNewName(''); setNewDesc('');
 	};
 
 	const handleDelete = async (name: string) => {
 		if (!confirm(`Delete role "${name}"?`)) return;
 		await fetch('/api/roles', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
-		setRoles((prev) => prev.filter((r) => r.name !== name));
+		refetchRoles();
 		if (selectedRole?.name === name) { setSelectedRole(null); setDirty(false); }
 	};
 
@@ -112,7 +105,7 @@ export default function RolesPage() {
 				<div className="grid grid-cols-4 gap-3">{[1, 2, 3, 4].map((i) => <div key={i} className="h-24 animate-pulse rounded-xl border border-border bg-muted" />)}</div>
 			) : (
 				<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-					{roles.map((role) => (
+					{(roles ?? []).map((role) => (
 						<div key={role.name} onClick={() => selectRole(role)} className={cn(
 							'flex flex-col items-start rounded-xl border p-4 text-left transition-colors cursor-pointer',
 							selectedRole?.name === role.name ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/50',
