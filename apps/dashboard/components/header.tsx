@@ -2,36 +2,22 @@
 
 import { Moon, Sun, Search, Bell, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTheme } from '@/lib/use-theme';
-
-type AuthUser = {
-	id: string;
-	name: string;
-	email: string;
-	role: string;
-};
+import { useAuth } from '@/lib/auth-context';
 
 /**
- * Dashboard header with search, notifications, theme toggle, user info, and logout.
+ * Dashboard header with search, theme toggle, user info, and logout.
+ * Uses shared AuthProvider — no separate /api/auth/me fetch.
  * @returns Header component
  */
 export const Header = () => {
 	const { resolvedTheme, setTheme, mounted } = useTheme();
+	const { user } = useAuth();
 	const router = useRouter();
-	const [user, setUser] = useState<AuthUser | null>(null);
 	const [showMenu, setShowMenu] = useState(false);
 
-	useEffect(() => {
-		fetch('/api/auth/me')
-			.then((res) => res.json())
-			.then((json) => { if (json.ok) setUser(json.data); })
-			.catch(() => {});
-	}, []);
-
-	const toggleTheme = () => {
-		setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
-	};
+	const toggleTheme = () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
 
 	const handleLogout = async () => {
 		await fetch('/api/auth/logout', { method: 'POST' });
@@ -89,13 +75,11 @@ export const Header = () => {
 								)}
 								<button type="button" onClick={() => { setShowMenu(false); router.push('/profile'); }}
 									className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent">
-									<User className="h-4 w-4" />
-									My Profile
+									<User className="h-4 w-4" /> My Profile
 								</button>
 								<button type="button" onClick={handleLogout}
 									className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
-									<LogOut className="h-4 w-4" />
-									Sign out
+									<LogOut className="h-4 w-4" /> Sign out
 								</button>
 							</div>
 						</>

@@ -39,10 +39,7 @@ const getCategoryFromMime = (mime: string): FilterType => {
 	return 'document';
 };
 
-type MeData = { permissions: string[] };
-
-const hasPerm = (perms: string[], resource: string, action: string): boolean =>
-	perms.some((p) => p === '*' || p === `*:${action}` || p === `${resource}:*` || p === `${resource}:${action}`);
+import { usePermissions } from '@/lib/use-permissions';
 
 export default function MediaPage() {
 	const [items, setItems] = useState<MediaItem[]>([]);
@@ -52,22 +49,16 @@ export default function MediaPage() {
 	const [uploading, setUploading] = useState(false);
 	const [dragOver, setDragOver] = useState(false);
 	const [loading, setLoading] = useState(true);
-	const [me, setMe] = useState<MeData | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const { can } = usePermissions();
+	const canUpload = can('media', 'create');
+	const canDeleteMedia = can('media', 'delete');
 
 	useEffect(() => {
-		Promise.all([
-			fetch('/api/media').then((r) => r.json()),
-			fetch('/api/auth/me').then((r) => r.json()),
-		]).then(([mediaJson, meJson]) => {
-			if (mediaJson.ok) setItems(mediaJson.data);
-			if (meJson.ok) setMe(meJson.data);
-		}).finally(() => setLoading(false));
+		fetch('/api/media').then((r) => r.json())
+			.then((json) => { if (json.ok) setItems(json.data); })
+			.finally(() => setLoading(false));
 	}, []);
-
-	const perms = me?.permissions ?? [];
-	const canUpload = hasPerm(perms, 'media', 'create');
-	const canDeleteMedia = hasPerm(perms, 'media', 'delete');
 
 	const filtered = items.filter((item) => {
 		if (filter !== 'all' && getCategoryFromMime(item.mimeType) !== filter) return false;

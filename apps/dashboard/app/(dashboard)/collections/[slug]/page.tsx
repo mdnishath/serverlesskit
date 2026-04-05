@@ -3,14 +3,10 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Plus, ArrowLeft, Search, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { usePermissions, hasPerm } from '@/lib/use-permissions';
 
 type EntryRow = { id: string; [key: string]: unknown };
 type CollectionMeta = { name: string; slug: string; fields: Record<string, { type: string }> };
-type MeData = { role: string; permissions: string[] };
-
-/** Checks if permission list grants resource:action */
-const hasPerm = (perms: string[], resource: string, action: string): boolean =>
-	perms.some((p) => p === '*' || p === `*:${action}` || p === `${resource}:*` || p === `${resource}:${action}`);
 
 export default function CollectionEntriesPage() {
 	const params = useParams();
@@ -21,34 +17,29 @@ export default function CollectionEntriesPage() {
 	const [search, setSearch] = useState('');
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(true);
-	const [me, setMe] = useState<MeData | null>(null);
+	const { perms } = usePermissions();
 
 	useEffect(() => {
 		const load = async () => {
 			try {
-				const [colRes, entryRes, meRes] = await Promise.all([
+				const [colRes, entryRes] = await Promise.all([
 					fetch('/api/collections'),
 					fetch(`/api/content/${slug}?limit=100`),
-					fetch('/api/auth/me'),
 				]);
 				const colJson = await colRes.json();
 				const entryJson = await entryRes.json();
-				const meJson = await meRes.json();
 
 				if (colJson.ok) {
 					const match = colJson.data.find((c: CollectionMeta) => c.slug === slug);
 					if (match) setCollection(match);
 				}
 				if (entryJson.ok) setEntries(entryJson.data ?? []);
-				if (meJson.ok) setMe(meJson.data);
 			} finally {
 				setLoading(false);
 			}
 		};
 		load();
 	}, [slug]);
-
-	const perms = me?.permissions ?? [];
 	const canCreate = hasPerm(perms, slug, 'create');
 	const canEdit = hasPerm(perms, slug, 'update');
 	const canDelete = hasPerm(perms, slug, 'delete');

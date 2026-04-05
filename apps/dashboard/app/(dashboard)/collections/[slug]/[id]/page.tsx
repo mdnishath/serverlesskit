@@ -5,13 +5,9 @@ import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DynamicField } from '@/components/collections/dynamic-field';
 import type { FieldTypeName } from '@/components/collections/field-type-selector';
+import { usePermissions, hasPerm } from '@/lib/use-permissions';
 
 type FieldDef = { name: string; type: FieldTypeName; required: boolean; options?: string[] };
-type MeData = { role: string; permissions: string[] };
-
-/** Checks if permission list grants resource:action */
-const hasPerm = (perms: string[], resource: string, action: string): boolean =>
-	perms.some((p) => p === '*' || p === `*:${action}` || p === `${resource}:*` || p === `${resource}:${action}`);
 
 export default function EntryEditorPage() {
 	const params = useParams();
@@ -26,18 +22,13 @@ export default function EntryEditorPage() {
 	const [loading, setLoading] = useState(true);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [error, setError] = useState('');
-	const [me, setMe] = useState<MeData | null>(null);
+	const { perms: myPerms } = usePermissions();
 
 	useEffect(() => {
 		const load = async () => {
 			try {
-				const [colRes, meRes] = await Promise.all([
-					fetch('/api/collections'),
-					fetch('/api/auth/me'),
-				]);
+				const colRes = await fetch('/api/collections');
 				const colJson = await colRes.json();
-				const meJson = await meRes.json();
-				if (meJson.ok) setMe(meJson.data);
 
 				if (colJson.ok) {
 					const match = colJson.data.find((c: { slug: string }) => c.slug === slug);
@@ -65,10 +56,9 @@ export default function EntryEditorPage() {
 		load();
 	}, [slug, entryId, isNew]);
 
-	const perms = me?.permissions ?? [];
-	const canCreate = hasPerm(perms, slug, 'create');
-	const canUpdate = hasPerm(perms, slug, 'update');
-	const canDelete = hasPerm(perms, slug, 'delete');
+	const canCreate = hasPerm(myPerms, slug, 'create');
+	const canUpdate = hasPerm(myPerms, slug, 'update');
+	const canDelete = hasPerm(myPerms, slug, 'delete');
 	const canWrite = isNew ? canCreate : canUpdate;
 	const readOnly = !canWrite;
 

@@ -2,63 +2,40 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import {
-	LayoutDashboard,
-	FolderOpen,
-	Image,
-	Users,
-	Shield,
-	Puzzle,
-	Settings,
-	ChevronLeft,
-	ChevronRight,
-	ChevronDown,
-	Database,
-	FileText,
+	LayoutDashboard, FolderOpen, Image, Users, Shield, Puzzle, Settings,
+	ChevronLeft, ChevronRight, ChevronDown, Database, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import { hasPerm } from '@/lib/use-permissions';
 
 type ContentType = { slug: string; name: string };
-type MeData = { id: string; role: string };
-
-const ROLE_LEVELS: Record<string, number> = { 'super-admin': 100, admin: 80, editor: 40, viewer: 10 };
-const getLevel = (r: string) => ROLE_LEVELS[r] ?? 10;
 
 /**
  * Collapsible sidebar with role-based visibility.
- * Content section: dynamic content types + Media (visible to all).
- * Admin section: only visible to admin+ roles.
+ * Uses shared AuthProvider — no separate /api/auth/me fetch.
  * @returns Sidebar component
  */
 export const Sidebar = () => {
 	const pathname = usePathname();
 	const router = useRouter();
+	const { user } = useAuth();
 	const [collapsed, setCollapsed] = useState(false);
 	const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
 	const [contentOpen, setContentOpen] = useState(true);
 	const [adminOpen, setAdminOpen] = useState(true);
-	const [me, setMe] = useState<MeData | null>(null);
 
 	useEffect(() => {
 		const stored = localStorage.getItem('sidebar-collapsed');
 		if (stored === 'true') setCollapsed(true);
-		fetch('/api/auth/me').then((r) => r.json()).then((j) => { if (j.ok) setMe(j.data); }).catch(() => {});
 	}, []);
 
-	const [myPermissions, setMyPermissions] = useState<string[]>([]);
-
 	useEffect(() => {
-		Promise.all([
-			fetch('/api/collections').then((r) => r.json()),
-			fetch('/api/roles').then((r) => r.json()),
-		]).then(([colJson, rolesJson]) => {
-			if (colJson.ok) setContentTypes(colJson.data.map((c: ContentType) => ({ slug: c.slug, name: c.name })));
-			if (rolesJson.ok && me) {
-				const myRole = rolesJson.data.find((r: { name: string }) => r.name === me.role);
-				if (myRole) setMyPermissions(myRole.permissions);
-			}
-		}).catch(() => {});
-	}, [pathname, me]);
+		fetch('/api/collections').then((r) => r.json())
+			.then((j) => { if (j.ok) setContentTypes(j.data.map((c: ContentType) => ({ slug: c.slug, name: c.name }))); })
+			.catch(() => {});
+	}, [pathname]);
 
 	const toggle = () => {
 		const next = !collapsed;
@@ -66,6 +43,8 @@ export const Sidebar = () => {
 		localStorage.setItem('sidebar-collapsed', String(next));
 	};
 
+	const perms = user?.permissions ?? [];
+	const canAccess = (resource: string) => hasPerm(perms, resource, 'read');
 	const isActive = (href: string) => pathname === href || (href !== '/' && pathname.startsWith(href));
 
 	const navClass = (href: string) => cn(
@@ -92,17 +71,14 @@ export const Sidebar = () => {
 		);
 	};
 
-	const isAdmin = me ? getLevel(me.role) >= 80 : false;
-
-	/** Check if user can access a specific content type */
-	const canAccessContent = (slug: string) => {
-		if (isAdmin) return true; // admin+ sees everything
-		return myPermissions.some((p) =>
-			p === '*' || p === '*:read' || p === `${slug}:read` || p === `${slug}:*`
-		);
-	};
-
-	const visibleContentTypes = contentTypes.filter((ct) => canAccessContent(ct.slug));
+	const visibleContentTypes = contentTypes.filter((ct) => canAccess(ct.slug));
+	const adminItems = [
+		{ href: '/collections', icon: FolderOpen, label: 'Content Types', resource: 'collections' },
+		{ href: '/users', icon: Users, label: 'Users', resource: 'users' },
+		{ href: '/roles', icon: Shield, label: 'Roles', resource: 'roles' },
+		{ href: '/plugins', icon: Puzzle, label: 'Plugins', resource: 'plugins' },
+		{ href: '/settings', icon: Settings, label: 'Settings', resource: 'settings' },
+	].filter((item) => canAccess(item.resource));
 
 	return (
 		<aside className={cn(
@@ -134,31 +110,18 @@ export const Sidebar = () => {
 					</div>
 				)}
 
-				{/* Admin section — items shown based on read permission */}
-				{(() => {
-					const adminItems = [
-						{ href: '/collections', icon: FolderOpen, label: 'Content Types', resource: 'collections' },
-						{ href: '/users', icon: Users, label: 'Users', resource: 'users' },
-						{ href: '/roles', icon: Shield, label: 'Roles', resource: 'roles' },
-						{ href: '/plugins', icon: Puzzle, label: 'Plugins', resource: 'plugins' },
-						{ href: '/settings', icon: Settings, label: 'Settings', resource: 'settings' },
-					].filter((item) => canAccessContent(item.resource));
-
-					if (adminItems.length === 0) return null;
-
-					return (
-						<>
-							<SectionHeader label="Admin" open={adminOpen} onToggle={() => setAdminOpen(!adminOpen)} />
-							{(adminOpen || collapsed) && (
-								<div className="space-y-0.5">
-									{adminItems.map((item) => (
-										<NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} />
-									))}
-								</div>
-							)}
-						</>
-					);
-				})()}
+				{adminItems.length > 0 && (
+					<>
+						<SectionHeader label="Admin" open={adminOpen} onToggle={() => setAdminOpen(!adminOpen)} />
+						{(adminOpen || collapsed) && (
+							<div className="space-y-0.5">
+								{adminItems.map((item) => (
+									<NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} />
+								))}
+							</div>
+						)}
+					</>
+				)}
 			</nav>
 
 			{!collapsed && (
