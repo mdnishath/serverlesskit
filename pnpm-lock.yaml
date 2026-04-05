@@ -23,6 +23,9 @@ importers:
 
   packages/core:
     dependencies:
+      nanoid:
+        specifier: ^5.1.0
+        version: 5.1.7
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -30,6 +33,9 @@ importers:
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
+      '@libsql/client':
+        specifier: ^0.14.0
+        version: 0.14.0
       '@serverlesskit/shared':
         specifier: workspace:*
         version: link:../shared

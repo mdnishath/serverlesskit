@@ -8,6 +8,14 @@
     "./schema": {
       "types": "./dist/schema/index.d.ts",
       "import": "./dist/schema/index.js"
+    },
+    "./crud": {
+      "types": "./dist/crud/index.d.ts",
+      "import": "./dist/crud/index.js"
+    },
+    "./hooks": {
+      "types": "./dist/hooks/index.d.ts",
+      "import": "./dist/hooks/index.js"
     }
   },
   "files": ["dist"],
@@ -22,9 +30,19 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "nanoid": "^5.1.0",
     "zod": "^3.24.0"
   },
+  "peerDependencies": {
+    "@libsql/client": ">=0.14.0"
+  },
+  "peerDependenciesMeta": {
+    "@libsql/client": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@libsql/client": "^0.14.0",
     "@serverlesskit/shared": "workspace:*",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0",
