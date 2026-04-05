@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "echo 'Dashboard lint skipped — uses Biome at root'",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next .turbo"
   },
