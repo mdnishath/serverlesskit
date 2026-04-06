@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { redirect } from 'next/navigation';
 import { getServerAuth, serverHasPerm } from '@/lib/server-data';
 import { getAllPluginsInfo } from '@/lib/plugin-runtime';

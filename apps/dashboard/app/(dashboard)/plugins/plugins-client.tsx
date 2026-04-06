@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Puzzle, PowerOff, AlertCircle, CheckCircle2, Zap, ChevronRight, Upload, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -49,14 +49,6 @@ export const PluginsClient = ({
 	const router = useRouter();
 	const [plugins, setPlugins] = useState<PluginInfo[]>(initialPlugins);
 	const [toggling, setToggling] = useState<string | null>(null);
-
-	/* Always fetch fresh data on mount to catch uploads/deletes */
-	useEffect(() => {
-		fetch('/api/plugins')
-			.then((r) => r.json())
-			.then((json) => { if (json.ok) setPlugins(json.data); })
-			.catch(() => {});
-	}, []);
 
 	const refreshPlugins = async () => {
 		try {
