@@ -1,0 +1,45 @@
+{
+  "name": "social-share",
+  "version": "1.0.0",
+  "description": "Auto-post content to social media platforms when entries are published — supports Twitter/X, Facebook, and LinkedIn",
+  "author": "ServerlessKit Community",
+  "category": "automation",
+  "features": [
+    "Auto-post to Twitter/X when new entry is created",
+    "Auto-post to Facebook Page",
+    "Auto-post to LinkedIn Company Page",
+    "Customizable post templates per collection",
+    "Schedule posts for optimal engagement times",
+    "Track share counts and engagement"
+  ],
+  "hooks": ["afterCreate", "afterUpdate"],
+  "settings": [
+    {
+      "key": "twitterApiKey",
+      "label": "Twitter/X API Key",
+      "type": "text",
+      "placeholder": "Enter your Twitter API key",
+      "description": "Get from developer.twitter.com"
+    },
+    {
+      "key": "facebookToken",
+      "label": "Facebook Page Token",
+      "type": "text",
+      "placeholder": "Enter your Facebook page access token",
+      "description": "Get from Facebook Developer Portal"
+    },
+    {
+      "key": "linkedinToken",
+      "label": "LinkedIn Access Token",
+      "type": "text",
+      "placeholder": "Enter your LinkedIn access token"
+    },
+    {
+      "key": "postTemplate",
+      "label": "Post Template",
+      "type": "textarea",
+      "placeholder": "New post: {{title}} - Read more at {{url}}",
+      "description": "Use {{title}}, {{url}}, {{description}} as placeholders"
+    }
+  ]
+}

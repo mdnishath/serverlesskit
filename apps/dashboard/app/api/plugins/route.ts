@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/api-auth';
-import { getAllPluginsInfo, enablePlugin, disablePlugin, getPluginDetail, updatePluginConfig } from '@/lib/plugin-runtime';
+import { getAllPluginsInfo, enablePlugin, disablePlugin, getPluginDetail, updatePluginConfig, deletePlugin } from '@/lib/plugin-runtime';
 
 /**
  * GET /api/plugins — List all plugins with state.
@@ -81,6 +81,39 @@ export async function PATCH(request: Request) {
 		return NextResponse.json({ ok: true, data: detail });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Failed to update config';
+		return NextResponse.json({ ok: false, error: { code: 'INTERNAL_ERROR', message } }, { status: 500 });
+	}
+}
+
+/**
+ * DELETE /api/plugins — Permanently delete an uploaded plugin.
+ * Body: { name: string }
+ */
+export async function DELETE(request: Request) {
+	try {
+		const auth = await requirePermission('plugins', 'delete');
+		if ('error' in auth) return auth.error;
+
+		const { name } = await request.json();
+		if (!name) {
+			return NextResponse.json(
+				{ ok: false, error: { code: 'VALIDATION_ERROR', message: 'name is required' } },
+				{ status: 400 },
+			);
+		}
+
+		const result = await deletePlugin(name);
+		if (!result.ok) {
+			return NextResponse.json(
+				{ ok: false, error: { code: 'PLUGIN_ERROR', message: result.message } },
+				{ status: 400 },
+			);
+		}
+
+		const plugins = await getAllPluginsInfo();
+		return NextResponse.json({ ok: true, data: plugins });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Failed to delete plugin';
 		return NextResponse.json({ ok: false, error: { code: 'INTERNAL_ERROR', message } }, { status: 500 });
 	}
 }

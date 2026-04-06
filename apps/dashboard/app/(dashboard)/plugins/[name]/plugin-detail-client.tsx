@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
 	ArrowLeft, Puzzle, CheckCircle2, PowerOff, AlertCircle,
-	Save, Zap, Check, Settings, BookOpen, List,
+	Save, Zap, Check, Settings, BookOpen, List, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SettingField } from '@/lib/plugins/registry';
@@ -24,6 +24,7 @@ type PluginDetail = {
 	hooks: string[];
 	readme: string;
 	config: Record<string, unknown>;
+	isBuiltIn: boolean;
 };
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; bg: string; label: string }> = {
@@ -58,6 +59,7 @@ export const PluginDetailClient = ({
 	const [saving, setSaving] = useState(false);
 	const [saveMsg, setSaveMsg] = useState('');
 	const [toggling, setToggling] = useState(false);
+	const [deleting, setDeleting] = useState(false);
 	const [tab, setTab] = useState<'overview' | 'settings'>('overview');
 
 	const isActive = plugin.status === 'active';
@@ -80,6 +82,22 @@ export const PluginDetailClient = ({
 			}
 		} catch { /* toggle failed */ }
 		setToggling(false);
+	};
+
+	const handleDelete = async () => {
+		if (!confirm(`Permanently delete plugin "${plugin.name}"? This cannot be undone.`)) return;
+		setDeleting(true);
+		try {
+			const res = await fetch('/api/plugins', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name: plugin.name }),
+			});
+			const json = await res.json();
+			if (json.ok) router.push('/plugins');
+			else alert(json.error?.message ?? 'Failed to delete');
+		} catch { alert('Network error'); }
+		setDeleting(false);
 	};
 
 	const handleSaveConfig = async () => {
@@ -135,12 +153,21 @@ export const PluginDetailClient = ({
 						<span className={cn('text-xs font-medium', statusCfg.color)}>{statusCfg.label}</span>
 					</div>
 					{canManage && (
-						<button type="button" onClick={handleToggle} disabled={toggling}
-							className={cn('rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50',
-								isActive ? 'bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
-									: 'bg-primary text-primary-foreground hover:bg-primary/90')}>
-							{toggling ? 'Saving...' : isActive ? 'Disable' : 'Enable'}
-						</button>
+						<div className="flex items-center gap-2">
+							<button type="button" onClick={handleToggle} disabled={toggling}
+								className={cn('rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50',
+									isActive ? 'bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+										: 'bg-primary text-primary-foreground hover:bg-primary/90')}>
+								{toggling ? 'Saving...' : isActive ? 'Disable' : 'Enable'}
+							</button>
+							{!plugin.isBuiltIn && (
+								<button type="button" onClick={handleDelete} disabled={deleting}
+									className="rounded-lg border border-destructive p-2 text-destructive hover:bg-destructive/10 disabled:opacity-50"
+									title="Delete plugin permanently">
+									<Trash2 className="h-4 w-4" />
+								</button>
+							)}
+						</div>
 					)}
 				</div>
 			</div>

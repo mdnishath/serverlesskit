@@ -276,9 +276,10 @@ export const getAllPluginsInfo = async () => {
 	if (!registry) return [];
 
 	return registry.getAll().map((p: PluginInstance) => {
-		const meta = PLUGIN_META[p.definition.manifest.name];
+		const name = p.definition.manifest.name;
+		const meta = PLUGIN_META[name];
 		return {
-			name: p.definition.manifest.name,
+			name,
 			version: p.definition.manifest.version,
 			description: p.definition.manifest.description,
 			author: p.definition.manifest.author ?? 'ServerlessKit',
@@ -289,6 +290,7 @@ export const getAllPluginsInfo = async () => {
 			category: meta?.category ?? 'developer',
 			features: meta?.features ?? [],
 			hasSettings: (meta?.settingsSchema.length ?? 0) > 0,
+			isBuiltIn: builtInPlugins.some((bp) => bp.manifest.name === name),
 		};
 	});
 };
@@ -313,6 +315,8 @@ export const getPluginDetail = async (name: string) => {
 		if (result.rows[0]) config = JSON.parse(String(result.rows[0].config || '{}')) as Record<string, unknown>;
 	} catch { /* no config yet */ }
 
+	const isBuiltIn = builtInPlugins.some((p) => p.manifest.name === name);
+
 	return {
 		name: instance.definition.manifest.name,
 		version: instance.definition.manifest.version,
@@ -328,6 +332,7 @@ export const getPluginDetail = async (name: string) => {
 		hooks: meta?.hooks ?? [],
 		readme: meta?.readme ?? '',
 		config,
+		isBuiltIn,
 	};
 };
 
@@ -363,6 +368,44 @@ export const updatePluginConfig = async (name: string, config: Record<string, un
 	}
 
 	return { ok: true, message: 'Settings saved' };
+};
+
+/**
+ * Permanently deletes an uploaded plugin from DB.
+ * Built-in plugins cannot be deleted.
+ * @param name - Plugin name
+ * @returns Success or error
+ */
+export const deletePlugin = async (name: string): Promise<{ ok: boolean; message: string }> => {
+	await initPlugins();
+	if (!registry) return { ok: false, message: 'Plugin system not initialized' };
+
+	/* Prevent deleting built-in plugins */
+	if (builtInPlugins.some((p) => p.manifest.name === name)) {
+		return { ok: false, message: `Cannot delete built-in plugin "${name}"` };
+	}
+
+	/* Deactivate first if active */
+	const instance = registry.get(name);
+	if (instance?.state === 'active') {
+		registry.deactivate(name);
+		syncHooks();
+	}
+
+	/* Remove from registry */
+	registry.uninstall(name);
+
+	/* Delete from both DB tables */
+	const db = getDb();
+	await db.execute({ sql: `DELETE FROM "${PLUGINS_TABLE}" WHERE "name" = ?`, args: [name] });
+	try {
+		await db.execute({ sql: `DELETE FROM "_plugin_meta" WHERE "name" = ?`, args: [name] });
+	} catch { /* table may not exist */ }
+
+	/* Remove from metadata cache */
+	delete PLUGIN_META[name];
+
+	return { ok: true, message: `Plugin "${name}" deleted permanently` };
 };
 
 /**

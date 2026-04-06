@@ -1,0 +1,46 @@
+{
+  "name": "seo-toolkit",
+  "version": "1.0.0",
+  "description": "SEO optimization tools — auto-generate meta titles, descriptions, and Open Graph tags for your content entries",
+  "author": "ServerlessKit Community",
+  "category": "content",
+  "features": [
+    "Auto-generate meta title from entry title field",
+    "Auto-generate meta description from content field",
+    "Open Graph tags for social media sharing",
+    "SEO score indicator for each entry",
+    "Sitemap.xml generation support",
+    "Canonical URL management"
+  ],
+  "hooks": ["beforeCreate", "beforeUpdate"],
+  "settings": [
+    {
+      "key": "siteUrl",
+      "label": "Site URL",
+      "type": "url",
+      "placeholder": "https://example.com",
+      "description": "Your website URL used for canonical URLs and Open Graph tags",
+      "required": true
+    },
+    {
+      "key": "defaultTitle",
+      "label": "Default Meta Title Suffix",
+      "type": "text",
+      "placeholder": "| My Website",
+      "description": "Appended to all auto-generated meta titles"
+    },
+    {
+      "key": "maxDescriptionLength",
+      "label": "Max Description Length",
+      "type": "number",
+      "placeholder": "160",
+      "description": "Maximum characters for auto-generated meta descriptions"
+    },
+    {
+      "key": "enableOpenGraph",
+      "label": "Enable Open Graph Tags",
+      "type": "boolean",
+      "description": "Generate og:title, og:description, og:image for social sharing"
+    }
+  ]
+}
