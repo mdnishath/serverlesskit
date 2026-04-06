@@ -91,7 +91,7 @@ export async function PATCH(request: Request) {
  */
 export async function DELETE(request: Request) {
 	try {
-		const auth = await requirePermission('plugins', 'delete');
+		const auth = await requirePermission('plugins', 'update');
 		if ('error' in auth) return auth.error;
 
 		const { name } = await request.json();

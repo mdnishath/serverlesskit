@@ -29,7 +29,10 @@ export default function PluginUploadPage() {
 			const json = await res.json();
 			setResult({ ok: json.ok, message: json.ok ? `Plugin "${json.data?.name}" installed successfully` : (json.error?.message ?? 'Upload failed') });
 			if (json.ok) {
-				setTimeout(() => router.push('/plugins'), 2000);
+				setTimeout(() => {
+					router.push('/plugins');
+					router.refresh();
+				}, 1500);
 			}
 		} catch {
 			setResult({ ok: false, message: 'Network error' });

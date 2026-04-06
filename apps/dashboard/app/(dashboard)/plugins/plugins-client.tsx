@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Puzzle, PowerOff, AlertCircle, CheckCircle2, Zap, ChevronRight, Upload, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,7 +36,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 /**
  * Client component for plugins list page.
- * Cards are clickable → navigate to plugin detail page.
+ * Fetches fresh data from API on mount to avoid stale SSR cache.
  * @param props - initialPlugins from server, canManage permission
  */
 export const PluginsClient = ({
@@ -50,6 +50,22 @@ export const PluginsClient = ({
 	const [plugins, setPlugins] = useState<PluginInfo[]>(initialPlugins);
 	const [toggling, setToggling] = useState<string | null>(null);
 
+	/* Always fetch fresh data on mount to catch uploads/deletes */
+	useEffect(() => {
+		fetch('/api/plugins')
+			.then((r) => r.json())
+			.then((json) => { if (json.ok) setPlugins(json.data); })
+			.catch(() => {});
+	}, []);
+
+	const refreshPlugins = async () => {
+		try {
+			const res = await fetch('/api/plugins');
+			const json = await res.json();
+			if (json.ok) setPlugins(json.data);
+		} catch {}
+	};
+
 	const deletePlugin = async (e: React.MouseEvent, name: string) => {
 		e.stopPropagation();
 		if (!confirm(`Permanently delete plugin "${name}"? This cannot be undone.`)) return;
@@ -60,9 +76,13 @@ export const PluginsClient = ({
 				body: JSON.stringify({ name }),
 			});
 			const json = await res.json();
-			if (json.ok) setPlugins(json.data);
-			else alert(json.error?.message ?? 'Failed to delete');
-		} catch { /* delete failed */ }
+			if (json.ok) {
+				/* Refresh from API to get clean state after runtime reset */
+				await refreshPlugins();
+			} else {
+				alert(json.error?.message ?? 'Failed to delete');
+			}
+		} catch {}
 	};
 
 	const togglePlugin = async (e: React.MouseEvent, name: string, currentlyActive: boolean) => {
@@ -76,8 +96,11 @@ export const PluginsClient = ({
 				body: JSON.stringify({ name, enabled: !currentlyActive }),
 			});
 			const json = await res.json();
-			if (json.ok) setPlugins(json.data);
-		} catch { /* toggle failed */ }
+			if (json.ok) {
+				/* Refresh from API to get clean state */
+				await refreshPlugins();
+			}
+		} catch {}
 		setToggling(null);
 	};
 
@@ -102,6 +125,7 @@ export const PluginsClient = ({
 				<div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12">
 					<Puzzle className="h-12 w-12 text-muted-foreground/50" />
 					<h3 className="mt-4 text-lg font-semibold">No plugins installed</h3>
+					<p className="mt-1 text-sm text-muted-foreground">Upload a plugin or check back later</p>
 				</div>
 			) : (
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
