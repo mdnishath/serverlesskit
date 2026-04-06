@@ -1,16 +1,17 @@
 import type { ReactNode } from 'react';
-import { Header } from '@/components/header';
 import { getServerAuth, getCollectionsData } from '@/lib/server-data';
+import { getActivePluginMenus } from '@/lib/plugin-runtime';
 import { DashboardShell } from './dashboard-shell';
 
 /**
- * Server Component layout — fetches auth + collections from DB.
- * Passes data to client shell for instant sidebar + header render.
+ * Server Component layout — fetches auth, collections, and active plugin menus.
+ * Passes all data to client shell for instant render.
  */
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-	const [auth, collections] = await Promise.all([
+	const [auth, collections, pluginMenus] = await Promise.all([
 		getServerAuth(),
 		getCollectionsData(),
+		getActivePluginMenus(),
 	]);
 
 	const initialUser = auth ? {
@@ -24,7 +25,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 	const initialCollections = collections.map((c) => ({ slug: c.slug, name: c.name }));
 
 	return (
-		<DashboardShell initialUser={initialUser} initialCollections={initialCollections}>
+		<DashboardShell
+			initialUser={initialUser}
+			initialCollections={initialCollections}
+			pluginMenus={pluginMenus}
+		>
 			{children}
 		</DashboardShell>
 	);

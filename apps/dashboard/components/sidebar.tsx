@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	LayoutDashboard, FolderOpen, Image, Users, Shield, Puzzle, Settings,
 	ChevronLeft, ChevronRight, ChevronDown, Database, FileText,
+	Webhook, ShieldCheck, Link2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useCallback } from 'react';
@@ -14,17 +15,29 @@ import { useCachedFetch } from '@/lib/use-cached-fetch';
 import { prefetchRoute } from '@/lib/prefetch';
 
 type ContentType = { slug: string; name: string };
+type PluginMenu = { name: string; label: string; icon: string };
+
+/** Maps plugin icon string to Lucide component */
+const PLUGIN_ICONS: Record<string, typeof Puzzle> = {
+	webhook: Webhook,
+	shield: ShieldCheck,
+	link: Link2,
+	puzzle: Puzzle,
+};
 
 /**
- * Collapsible sidebar with mobile support.
+ * Collapsible sidebar with mobile support and plugin menu pages.
  * On mobile, calls onNavigate to close the drawer after link click.
- * @param props - initialCollections, onNavigate callback
+ * Active plugins with dashboardMenu show as sidebar items.
+ * @param props - initialCollections, pluginMenus, onNavigate callback
  */
 export const Sidebar = ({
 	initialCollections = [],
+	pluginMenus = [],
 	onNavigate,
 }: {
 	initialCollections?: ContentType[];
+	pluginMenus?: PluginMenu[];
 	onNavigate?: () => void;
 }) => {
 	const pathname = usePathname();
@@ -36,6 +49,7 @@ export const Sidebar = ({
 
 	const { data: freshData } = useCachedFetch<ContentType[]>('/api/collections');
 	const contentTypes = (freshData ?? initialCollections).map((c) => ({ slug: c.slug, name: c.name }));
+	const [pluginsOpen, setPluginsOpen] = useState(true);
 
 	useEffect(() => {
 		const stored = localStorage.getItem('sidebar-collapsed');
@@ -123,6 +137,20 @@ export const Sidebar = ({
 						))}
 						<NavItem href="/media" icon={Image} label="Media" />
 					</div>
+				)}
+
+				{pluginMenus.length > 0 && (
+					<>
+						<SectionHeader label="Plugins" open={pluginsOpen} onToggle={() => setPluginsOpen(!pluginsOpen)} />
+						{(pluginsOpen || collapsed) && (
+							<div className="space-y-0.5">
+								{pluginMenus.map((pm) => {
+									const Icon = PLUGIN_ICONS[pm.icon] ?? Puzzle;
+									return <NavItem key={pm.name} href={`/plugins/${pm.name}`} icon={Icon} label={pm.label} />;
+								})}
+							</div>
+						)}
+					</>
 				)}
 
 				{adminItems.length > 0 && (

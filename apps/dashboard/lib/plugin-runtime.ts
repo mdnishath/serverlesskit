@@ -3,7 +3,7 @@ import type { PluginDefinition, PluginInstance } from '@serverlesskit/plugin-sdk
 import { createHookManager } from '@serverlesskit/core/hooks';
 import type { HookEvent, HookHandler } from '@serverlesskit/core/hooks';
 import { getDb } from './db';
-import { PLUGIN_META } from './plugins/registry';
+import { PLUGIN_META, type PluginMenuEntry } from './plugins/registry';
 
 const PLUGINS_TABLE = '_plugins';
 
@@ -157,10 +157,18 @@ export const initPlugins = async (): Promise<void> => {
 		const allPlugins = [...builtInPlugins, ...uploadedPlugins];
 		const enabledMap = await loadEnabledPlugins();
 
-		/* Install all plugins */
+		/* Install all plugins and ensure each has a DB row */
+		const db = getDb();
 		for (const plugin of allPlugins) {
-			const config = enabledMap.get(plugin.manifest.name) ?? {};
+			const name = plugin.manifest.name;
+			const config = enabledMap.get(name) ?? {};
 			registry.install(plugin, config);
+			/* Ensure row exists in _plugins so toggle always works */
+			const isEnabled = enabledMap.has(name) ? 1 : 0;
+			await db.execute({
+				sql: `INSERT OR IGNORE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, ?, ?)`,
+				args: [name, isEnabled, JSON.stringify(config)],
+			});
 		}
 
 		/* Activate enabled ones */
@@ -243,13 +251,17 @@ export const disablePlugin = async (name: string): Promise<{ ok: boolean; messag
 	await initPlugins();
 	if (!registry) return { ok: false, message: 'Plugin system not initialized' };
 
+	const instance = registry.get(name);
+	if (!instance) return { ok: false, message: `Plugin "${name}" not found` };
+
 	registry.deactivate(name);
 	syncHooks();
 
+	/* Use INSERT OR REPLACE to ensure row exists even if never enabled before */
 	const db = getDb();
 	await db.execute({
-		sql: `UPDATE "${PLUGINS_TABLE}" SET "enabled" = 0 WHERE "name" = ?`,
-		args: [name],
+		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, ?)`,
+		args: [name, JSON.stringify(instance.config)],
 	});
 
 	return { ok: true, message: `Plugin "${name}" disabled` };
@@ -351,4 +363,27 @@ export const updatePluginConfig = async (name: string, config: Record<string, un
 	}
 
 	return { ok: true, message: 'Settings saved' };
+};
+
+/**
+ * Gets sidebar menu items for active plugins that have dashboardMenu defined.
+ * @returns Array of { name, label, icon } for sidebar rendering
+ */
+export const getActivePluginMenus = async (): Promise<Array<{ name: string; label: string; icon: string }>> => {
+	await initPlugins();
+	if (!registry) return [];
+
+	const menus: Array<{ name: string; label: string; icon: string }> = [];
+	for (const p of registry.getAll()) {
+		if (p.state !== 'active') continue;
+		const meta = PLUGIN_META[p.definition.manifest.name];
+		if (meta?.dashboardMenu) {
+			menus.push({
+				name: p.definition.manifest.name,
+				label: meta.dashboardMenu.label,
+				icon: meta.dashboardMenu.icon ?? 'puzzle',
+			});
+		}
+	}
+	return menus;
 };

@@ -16,19 +16,22 @@ type AuthUser = {
 };
 
 type ContentType = { slug: string; name: string };
+type PluginMenu = { name: string; label: string; icon: string };
 
 /**
  * Client shell with mobile-responsive sidebar drawer.
- * On desktop: fixed sidebar. On mobile: hamburger + slide-out overlay.
- * @param props - initialUser, initialCollections, children
+ * Receives server-fetched data for instant render including plugin menus.
+ * @param props - initialUser, initialCollections, pluginMenus, children
  */
 export const DashboardShell = ({
 	initialUser,
 	initialCollections,
+	pluginMenus = [],
 	children,
 }: {
 	initialUser: AuthUser | null;
 	initialCollections: ContentType[];
+	pluginMenus?: PluginMenu[];
 	children: ReactNode;
 }) => {
 	const [mobileOpen, setMobileOpen] = useState(false);
@@ -50,7 +53,11 @@ export const DashboardShell = ({
 					fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:relative md:translate-x-0
 					${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
 				`}>
-					<Sidebar initialCollections={initialCollections} onNavigate={() => setMobileOpen(false)} />
+					<Sidebar
+						initialCollections={initialCollections}
+						pluginMenus={pluginMenus}
+						onNavigate={() => setMobileOpen(false)}
+					/>
 				</div>
 
 				<div className="flex flex-1 flex-col overflow-hidden">

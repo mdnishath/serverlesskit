@@ -9,6 +9,12 @@ export type SettingField = {
 	required?: boolean;
 };
 
+/** Dashboard menu entry for a plugin */
+export type PluginMenuEntry = {
+	label: string;
+	icon?: string;
+};
+
 /** Rich metadata for a plugin beyond the core manifest */
 export type PluginMeta = {
 	category: 'automation' | 'content' | 'security' | 'developer';
@@ -16,6 +22,8 @@ export type PluginMeta = {
 	settingsSchema: SettingField[];
 	hooks: string[];
 	readme: string;
+	/** If set, shows a menu item in the sidebar when plugin is active */
+	dashboardMenu?: PluginMenuEntry;
 };
 
 /**
@@ -25,6 +33,7 @@ export type PluginMeta = {
 export const PLUGIN_META: Record<string, PluginMeta> = {
 	webhook: {
 		category: 'automation',
+		dashboardMenu: { label: 'Webhooks', icon: 'webhook' },
 		features: [
 			'Send HTTP POST on entry create, update, or delete',
 			'Custom webhook URL configuration',
@@ -72,6 +81,7 @@ Automatically sends HTTP POST requests to a configured URL whenever entries are 
 
 	'audit-log': {
 		category: 'security',
+		dashboardMenu: { label: 'Audit Log', icon: 'shield' },
 		features: [
 			'Records every create, update, and delete operation',
 			'Stores who did what, when, and what changed',
@@ -105,6 +115,7 @@ Automatically records all CRUD operations to an \`_audit_log\` table in your dat
 
 	'slug-generator': {
 		category: 'content',
+		dashboardMenu: { label: 'Slug Generator', icon: 'link' },
 		features: [
 			'Auto-generates URL-friendly slug from title or name field',
 			'Only activates if collection has a "slug" field',
