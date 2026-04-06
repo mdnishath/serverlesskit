@@ -95,16 +95,15 @@ export async function POST(request: Request) {
 			args: [name, version, description, author, category, features, hooks, settings, new Date().toISOString()],
 		});
 
-		/* Register into running runtime so it appears immediately */
-		await registerUploadedPlugin(name, {
-			version,
-			description,
-			author,
-			category,
-			features: (manifest.features ?? []) as string[],
-			hooks: (manifest.hooks ?? []) as string[],
-			settings: (manifest.settings ?? []) as Array<Record<string, unknown>>,
+		/* Clear any stale deleted marker and ensure clean _plugins row */
+		await db.execute(`CREATE TABLE IF NOT EXISTS "${PLUGINS_TABLE}" ("name" TEXT PRIMARY KEY NOT NULL, "enabled" INTEGER NOT NULL DEFAULT 0, "config" TEXT NOT NULL DEFAULT '{}')`);
+		await db.execute({
+			sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, '{}')`,
+			args: [name],
 		});
+
+		/* Reset runtime so it reloads from DB */
+		await registerUploadedPlugin();
 
 		return NextResponse.json({
 			ok: true,
