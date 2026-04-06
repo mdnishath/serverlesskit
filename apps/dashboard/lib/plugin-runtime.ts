@@ -240,7 +240,79 @@ export const disablePlugin = async (name: string): Promise<{ ok: boolean; messag
 	return { ok: true, message: `Plugin "${name}" disabled` };
 };
 
-/** Gets all plugins info for the UI */
+/**
+ * Reads plugin list directly from DB — avoids stale singleton state.
+ * Used by Server Components where in-memory state may be from a different worker.
+ */
+export const getPluginsFromDb = async () => {
+	await ensureTable();
+	const db = getDb();
+
+	/* Load built-in plugin names */
+	const builtIns = await loadBuiltInPlugins();
+	const builtInNames = new Set(builtIns.map((p) => p.manifest.name));
+
+	/* Read DB state */
+	const states = await loadPluginStates();
+
+	/* Read uploaded plugins */
+	await ensureMetaTable();
+	const metaResult = await db.execute(`SELECT * FROM "_plugin_meta"`);
+	const uploadedNames = new Set(metaResult.rows.map((r) => String(r.name)));
+
+	/* Merge: built-in + uploaded */
+	const allNames = new Set([...builtInNames, ...uploadedNames]);
+	const result: Array<{
+		name: string; version: string; description: string; author: string;
+		status: 'installed' | 'active' | 'inactive' | 'error'; error?: string; hooksCount: number; routesCount: number;
+		category: string; features: string[]; hasSettings: boolean; isBuiltIn: boolean;
+	}> = [];
+
+	for (const bi of builtIns) {
+		const name = bi.manifest.name;
+		const state = states.get(name);
+		const meta = PLUGIN_META[name];
+		result.push({
+			name,
+			version: bi.manifest.version,
+			description: bi.manifest.description,
+			author: bi.manifest.author ?? 'ServerlessKit',
+			status: (state?.enabled === 1 ? 'active' : 'installed') as 'active' | 'installed' | 'inactive' | 'error',
+			hooksCount: meta?.hooks?.length ?? 0,
+			routesCount: 0,
+			category: meta?.category ?? 'developer',
+			features: meta?.features ?? [],
+			hasSettings: (meta?.settingsSchema?.length ?? 0) > 0,
+			isBuiltIn: true,
+		});
+	}
+
+	for (const row of metaResult.rows) {
+		const name = String(row.name);
+		if (builtInNames.has(name)) continue;
+		const state = states.get(name);
+		const features = JSON.parse(String(row.features || '[]')) as string[];
+		const hooks = JSON.parse(String(row.hooks || '[]')) as string[];
+		const settings = JSON.parse(String(row.settings || '[]')) as unknown[];
+		result.push({
+			name,
+			version: String(row.version),
+			description: String(row.description),
+			author: String(row.author ?? 'Community'),
+			status: (state?.enabled === 1 ? 'active' : 'installed') as 'active' | 'installed' | 'inactive' | 'error',
+			hooksCount: hooks.length,
+			routesCount: 0,
+			category: String(row.category ?? 'developer'),
+			features,
+			hasSettings: settings.length > 0,
+			isBuiltIn: false,
+		});
+	}
+
+	return result;
+};
+
+/** Gets all plugins info for the UI (from in-memory registry) */
 export const getAllPluginsInfo = async () => {
 	await initPlugins();
 	if (!registry) return [];

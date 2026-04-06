@@ -2,18 +2,19 @@ export const dynamic = 'force-dynamic';
 
 import { redirect } from 'next/navigation';
 import { getServerAuth, serverHasPerm } from '@/lib/server-data';
-import { getAllPluginsInfo } from '@/lib/plugin-runtime';
+import { getPluginsFromDb } from '@/lib/plugin-runtime';
 import { PluginsClient } from './plugins-client';
 
 /**
- * Server Component — fetches plugins from runtime at request time.
+ * Server Component — reads plugin state directly from DB (not singleton).
+ * This avoids stale in-memory state when dev server has multiple workers.
  */
 export default async function PluginsPage() {
 	const auth = await getServerAuth();
 	if (!auth) redirect('/login');
 
 	const plugins = serverHasPerm(auth.permissions, 'plugins', 'read')
-		? await getAllPluginsInfo()
+		? await getPluginsFromDb()
 		: [];
 
 	const canManage = serverHasPerm(auth.permissions, 'plugins', 'update');
