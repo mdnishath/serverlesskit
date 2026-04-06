@@ -421,21 +421,29 @@ export const deletePlugin = async (name: string): Promise<{ ok: boolean; message
 	return { ok: true, message: `Plugin "${name}" deleted` };
 };
 
-/** Gets sidebar menu items for active plugins */
+/** Menu labels for known plugins */
+const KNOWN_MENUS: Record<string, { label: string; icon: string }> = {
+	webhook: { label: 'Webhooks', icon: 'webhook' },
+	'audit-log': { label: 'Audit Log', icon: 'shield' },
+	'slug-generator': { label: 'Slug Generator', icon: 'link' },
+};
+
+/** Gets sidebar menu items for ALL active plugins — reads directly from DB */
 export const getActivePluginMenus = async (): Promise<Array<{ name: string; label: string; icon: string }>> => {
-	await initPlugins();
-	if (!registry) return [];
+	await ensureTable();
+	const db = getDb();
+	const result = await db.execute(`SELECT "name" FROM "${PLUGINS_TABLE}" WHERE "enabled" = 1`);
 	const menus: Array<{ name: string; label: string; icon: string }> = [];
-	for (const p of registry.getAll()) {
-		if (p.state !== 'active') continue;
-		const meta = PLUGIN_META[p.definition.manifest.name];
-		if (meta?.dashboardMenu) {
-			menus.push({
-				name: p.definition.manifest.name,
-				label: meta.dashboardMenu.label,
-				icon: meta.dashboardMenu.icon ?? 'puzzle',
-			});
-		}
+
+	for (const row of result.rows) {
+		const name = String(row.name);
+		const known = KNOWN_MENUS[name];
+		menus.push({
+			name,
+			label: known?.label ?? name.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+			icon: known?.icon ?? 'puzzle',
+		});
 	}
+
 	return menus;
 };
