@@ -1,0 +1,16 @@
+{
+  "name": "audit-log",
+  "version": "1.0.0",
+  "description": "Log all create, update, and delete operations for audit trail",
+  "author": "ServerlessKit",
+  "category": "security",
+  "features": [
+    "Records every create, update, and delete operation",
+    "Stores who did what, when, and what changed",
+    "Data saved to _audit_log table in your database",
+    "Non-blocking — won't slow down your operations",
+    "Useful for compliance, debugging, and activity tracking"
+  ],
+  "hooks": ["afterCreate", "afterUpdate", "afterDelete"],
+  "settings": []
+}

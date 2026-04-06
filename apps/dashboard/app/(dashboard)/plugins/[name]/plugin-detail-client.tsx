@@ -160,13 +160,11 @@ export const PluginDetailClient = ({
 										: 'bg-primary text-primary-foreground hover:bg-primary/90')}>
 								{toggling ? 'Saving...' : isActive ? 'Disable' : 'Enable'}
 							</button>
-							{!plugin.isBuiltIn && (
-								<button type="button" onClick={handleDelete} disabled={deleting}
-									className="rounded-lg border border-destructive p-2 text-destructive hover:bg-destructive/10 disabled:opacity-50"
-									title="Delete plugin permanently">
-									<Trash2 className="h-4 w-4" />
-								</button>
-							)}
+							<button type="button" onClick={handleDelete} disabled={deleting}
+								className="rounded-lg border border-destructive p-2 text-destructive hover:bg-destructive/10 disabled:opacity-50"
+								title="Delete plugin permanently">
+								<Trash2 className="h-4 w-4" />
+							</button>
 						</div>
 					)}
 				</div>

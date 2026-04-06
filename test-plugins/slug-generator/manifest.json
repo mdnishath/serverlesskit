@@ -1,0 +1,16 @@
+{
+  "name": "slug-generator",
+  "version": "1.0.0",
+  "description": "Auto-generate slug from title or name field on entry creation",
+  "author": "ServerlessKit",
+  "category": "content",
+  "features": [
+    "Auto-generates URL-friendly slug from title or name field",
+    "Only activates if collection has a slug field",
+    "Skips generation if slug is manually provided",
+    "Converts to lowercase, replaces spaces with hyphens",
+    "Removes special characters for clean URLs"
+  ],
+  "hooks": ["beforeCreate"],
+  "settings": []
+}

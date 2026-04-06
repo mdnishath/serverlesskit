@@ -165,14 +165,12 @@ export const PluginsClient = ({
 												)}>
 												{isToggling ? 'Saving...' : isActive ? 'Disable' : 'Enable'}
 											</button>
-											{!plugin.isBuiltIn && (
-												<button type="button"
-													onClick={(e) => deletePlugin(e, plugin.name)}
-													className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-													title="Delete plugin">
-													<Trash2 className="h-3.5 w-3.5" />
-												</button>
-											)}
+											<button type="button"
+												onClick={(e) => deletePlugin(e, plugin.name)}
+												className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+												title="Delete plugin">
+												<Trash2 className="h-3.5 w-3.5" />
+											</button>
 										</div>
 									)}
 								</div>

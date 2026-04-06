@@ -1,0 +1,25 @@
+{
+  "name": "webhook",
+  "version": "1.0.0",
+  "description": "Send HTTP webhooks on create, update, and delete events",
+  "author": "ServerlessKit",
+  "category": "automation",
+  "features": [
+    "Send HTTP POST on entry create, update, or delete",
+    "Custom webhook URL configuration",
+    "Event type included in X-ServerlessKit-Event header",
+    "Full entry data in JSON payload",
+    "Best-effort delivery (non-blocking)"
+  ],
+  "hooks": ["afterCreate", "afterUpdate", "afterDelete"],
+  "settings": [
+    {
+      "key": "url",
+      "label": "Webhook URL",
+      "type": "url",
+      "placeholder": "https://example.com/webhook",
+      "description": "HTTP endpoint that receives POST requests when CRUD events occur",
+      "required": true
+    }
+  ]
+}

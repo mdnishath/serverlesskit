@@ -35,7 +35,7 @@ const ensureTable = async () => {
 
 /**
  * Loads enabled plugin names from the DB.
- * @returns Set of enabled plugin names
+ * @returns Map of enabled plugin names to their config
  */
 const loadEnabledPlugins = async (): Promise<Map<string, Record<string, unknown>>> => {
 	const db = getDb();
@@ -47,6 +47,16 @@ const loadEnabledPlugins = async (): Promise<Map<string, Record<string, unknown>
 		map.set(name, config);
 	}
 	return map;
+};
+
+/**
+ * Loads deleted plugin names from the DB (enabled = -1).
+ * These plugins are skipped during init even if they're built-in.
+ */
+const loadDeletedPlugins = async (): Promise<Set<string>> => {
+	const db = getDb();
+	const result = await db.execute(`SELECT "name" FROM "${PLUGINS_TABLE}" WHERE "enabled" = -1`);
+	return new Set(result.rows.map((row) => String(row.name)));
 };
 
 /** All valid hook events */
@@ -156,11 +166,13 @@ export const initPlugins = async (): Promise<void> => {
 		const uploadedPlugins = await loadUploadedPlugins();
 		const allPlugins = [...builtInPlugins, ...uploadedPlugins];
 		const enabledMap = await loadEnabledPlugins();
+		const deletedSet = await loadDeletedPlugins();
 
-		/* Install all plugins and ensure each has a DB row */
+		/* Install all plugins, skip deleted ones */
 		const db = getDb();
 		for (const plugin of allPlugins) {
 			const name = plugin.manifest.name;
+			if (deletedSet.has(name)) continue;
 			const config = enabledMap.get(name) ?? {};
 			registry.install(plugin, config);
 			/* Ensure row exists in _plugins so toggle always works */
@@ -431,11 +443,6 @@ export const deletePlugin = async (name: string): Promise<{ ok: boolean; message
 	await initPlugins();
 	if (!registry) return { ok: false, message: 'Plugin system not initialized' };
 
-	/* Prevent deleting built-in plugins */
-	if (builtInPlugins.some((p) => p.manifest.name === name)) {
-		return { ok: false, message: `Cannot delete built-in plugin "${name}"` };
-	}
-
 	/* Deactivate first if active */
 	const instance = registry.get(name);
 	if (instance?.state === 'active') {
@@ -446,9 +453,12 @@ export const deletePlugin = async (name: string): Promise<{ ok: boolean; message
 	/* Remove from registry */
 	registry.uninstall(name);
 
-	/* Delete from both DB tables */
+	/* Mark as deleted in DB — for built-in plugins, this prevents re-loading on cold start */
 	const db = getDb();
-	await db.execute({ sql: `DELETE FROM "${PLUGINS_TABLE}" WHERE "name" = ?`, args: [name] });
+	await db.execute({
+		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, -1, '{}')`,
+		args: [name],
+	});
 	try {
 		await db.execute({ sql: `DELETE FROM "_plugin_meta" WHERE "name" = ?`, args: [name] });
 	} catch { /* table may not exist */ }
