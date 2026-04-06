@@ -371,6 +371,57 @@ export const updatePluginConfig = async (name: string, config: Record<string, un
 };
 
 /**
+ * Registers a newly uploaded plugin into the running registry.
+ * Called after zip upload to make the plugin appear immediately.
+ * @param name - Plugin name
+ * @param meta - Plugin metadata from manifest.json
+ */
+export const registerUploadedPlugin = async (name: string, meta: {
+	version: string; description: string; author: string; category: string;
+	features: string[]; hooks: string[]; settings: Array<Record<string, unknown>>;
+}): Promise<void> => {
+	await initPlugins();
+	if (!registry) return;
+
+	/* Skip if already registered */
+	if (registry.get(name)) return;
+
+	/* Register metadata */
+	PLUGIN_META[name] = {
+		category: (meta.category as 'automation' | 'content' | 'security' | 'developer') ?? 'developer',
+		features: meta.features,
+		settingsSchema: meta.settings.map((s) => ({
+			key: String(s.key ?? ''),
+			label: String(s.label ?? ''),
+			type: (String(s.type ?? 'text') as 'text' | 'url' | 'number' | 'boolean' | 'select' | 'textarea'),
+			placeholder: s.placeholder ? String(s.placeholder) : undefined,
+			description: s.description ? String(s.description) : undefined,
+			required: Boolean(s.required),
+		})),
+		hooks: meta.hooks,
+		readme: `Uploaded plugin: ${meta.description}`,
+	};
+
+	/* Create a config-only plugin definition and install it */
+	const { definePlugin } = await import('@serverlesskit/plugin-sdk');
+	const pluginDef = definePlugin({
+		name,
+		version: meta.version,
+		description: meta.description,
+		author: meta.author,
+		setup: () => { /* config-only plugin */ },
+	});
+	registry.install(pluginDef, {});
+
+	/* Ensure DB row exists */
+	const db = getDb();
+	await db.execute({
+		sql: `INSERT OR IGNORE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, '{}')`,
+		args: [name],
+	});
+};
+
+/**
  * Permanently deletes an uploaded plugin from DB.
  * Built-in plugins cannot be deleted.
  * @param name - Plugin name

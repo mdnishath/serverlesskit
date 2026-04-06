@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { unzipSync } from 'fflate';
 import { requirePermission } from '@/lib/api-auth';
 import { getDb } from '@/lib/db';
+import { registerUploadedPlugin } from '@/lib/plugin-runtime';
 
 const PLUGINS_TABLE = '_plugins';
 const PLUGIN_META_TABLE = '_plugin_meta';
@@ -94,11 +95,15 @@ export async function POST(request: Request) {
 			args: [name, version, description, author, category, features, hooks, settings, new Date().toISOString()],
 		});
 
-		/* Also create an entry in _plugins if not exists */
-		await db.execute(`CREATE TABLE IF NOT EXISTS "${PLUGINS_TABLE}" ("name" TEXT PRIMARY KEY NOT NULL, "enabled" INTEGER NOT NULL DEFAULT 0, "config" TEXT NOT NULL DEFAULT '{}')`);
-		await db.execute({
-			sql: `INSERT OR IGNORE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, '{}')`,
-			args: [name],
+		/* Register into running runtime so it appears immediately */
+		await registerUploadedPlugin(name, {
+			version,
+			description,
+			author,
+			category,
+			features: (manifest.features ?? []) as string[],
+			hooks: (manifest.hooks ?? []) as string[],
+			settings: (manifest.settings ?? []) as Array<Record<string, unknown>>,
 		});
 
 		return NextResponse.json({
