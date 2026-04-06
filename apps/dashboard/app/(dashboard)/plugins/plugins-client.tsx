@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Puzzle, PowerOff, AlertCircle, CheckCircle2, Zap, ChevronRight, Upload, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { dispatchPluginMenuUpdate } from '@/lib/plugin-events';
 
 type PluginInfo = {
 	name: string;
@@ -49,6 +50,25 @@ export const PluginsClient = ({
 	const [plugins, setPlugins] = useState<PluginInfo[]>(initialPlugins);
 	const [toggling, setToggling] = useState<string | null>(null);
 
+	/** Maps plugin names to sidebar menu labels */
+	const MENU_LABELS: Record<string, { label: string; icon: string }> = {
+		webhook: { label: 'Webhooks', icon: 'webhook' },
+		'audit-log': { label: 'Audit Log', icon: 'shield' },
+		'slug-generator': { label: 'Slug Generator', icon: 'link' },
+	};
+
+	/** Syncs sidebar plugin menus from current plugin state */
+	const syncSidebarMenus = (pluginList: PluginInfo[]) => {
+		const menus = pluginList
+			.filter((p) => p.status === 'active')
+			.map((p) => ({
+				name: p.name,
+				label: MENU_LABELS[p.name]?.label ?? p.name,
+				icon: MENU_LABELS[p.name]?.icon ?? 'puzzle',
+			}));
+		dispatchPluginMenuUpdate(menus);
+	};
+
 	const deletePlugin = async (e: React.MouseEvent, name: string) => {
 		e.stopPropagation();
 		if (!confirm(`Permanently delete plugin "${name}"? This cannot be undone.`)) return;
@@ -60,8 +80,12 @@ export const PluginsClient = ({
 			});
 			const json = await res.json();
 			if (json.ok) {
-				/* Remove from local state immediately */
-				setPlugins((prev) => prev.filter((p) => p.name !== name));
+				/* Remove from local state + sync sidebar */
+				setPlugins((prev) => {
+					const updated = prev.filter((p) => p.name !== name);
+					syncSidebarMenus(updated);
+					return updated;
+				});
 			} else {
 				alert(json.error?.message ?? 'Failed to delete');
 			}
@@ -75,10 +99,14 @@ export const PluginsClient = ({
 
 		const newStatus = currentlyActive ? 'installed' as const : 'active' as const;
 
-		/* Optimistic: update ONLY this plugin */
-		setPlugins((prev) => prev.map((p) =>
-			p.name === name ? { ...p, status: newStatus } : p
-		));
+		/* Optimistic: update ONLY this plugin + sync sidebar */
+		setPlugins((prev) => {
+			const updated = prev.map((p) =>
+				p.name === name ? { ...p, status: newStatus } : p
+			);
+			syncSidebarMenus(updated);
+			return updated;
+		});
 
 		try {
 			const res = await fetch('/api/plugins', {
@@ -89,16 +117,23 @@ export const PluginsClient = ({
 			const json = await res.json();
 			if (!json.ok) {
 				/* Revert on failure */
-				setPlugins((prev) => prev.map((p) =>
-					p.name === name ? { ...p, status: currentlyActive ? 'active' as const : 'installed' as const } : p
-				));
+				setPlugins((prev) => {
+					const reverted = prev.map((p) =>
+						p.name === name ? { ...p, status: currentlyActive ? 'active' as const : 'installed' as const } : p
+					);
+					syncSidebarMenus(reverted);
+					return reverted;
+				});
 			}
-			/* On success: keep the optimistic update — don't replace all plugins from API */
 		} catch {
 			/* Revert on error */
-			setPlugins((prev) => prev.map((p) =>
-				p.name === name ? { ...p, status: currentlyActive ? 'active' as const : 'installed' as const } : p
-			));
+			setPlugins((prev) => {
+				const reverted = prev.map((p) =>
+					p.name === name ? { ...p, status: currentlyActive ? 'active' as const : 'installed' as const } : p
+				);
+				syncSidebarMenus(reverted);
+				return reverted;
+			});
 		}
 		setToggling(null);
 	};

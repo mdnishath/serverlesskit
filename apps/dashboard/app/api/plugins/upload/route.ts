@@ -89,6 +89,33 @@ export async function POST(request: Request) {
 		await ensureMetaTable();
 		const db = getDb();
 
+		/* Check if plugin with same name+version already exists */
+		const existing = await db.execute({
+			sql: `SELECT "name", "version" FROM "_plugin_meta" WHERE "name" = ?`,
+			args: [name],
+		});
+		if (existing.rows.length > 0) {
+			const existingVersion = String(existing.rows[0].version);
+			if (existingVersion === version) {
+				return NextResponse.json(
+					{ ok: false, error: { code: 'CONFLICT', message: `Plugin "${name}" v${version} is already installed` } },
+					{ status: 409 },
+				);
+			}
+		}
+
+		/* Also check built-in plugins */
+		const builtInCheck = await db.execute({
+			sql: `SELECT "name" FROM "${PLUGINS_TABLE}" WHERE "name" = ?`,
+			args: [name],
+		});
+		if (builtInCheck.rows.length > 0 && existing.rows.length === 0) {
+			return NextResponse.json(
+				{ ok: false, error: { code: 'CONFLICT', message: `A built-in plugin named "${name}" already exists` } },
+				{ status: 409 },
+			);
+		}
+
 		/* Store plugin metadata */
 		await db.execute({
 			sql: `INSERT OR REPLACE INTO "${PLUGIN_META_TABLE}" ("name", "version", "description", "author", "category", "features", "hooks", "settings", "installedAt") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

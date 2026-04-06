@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import { hasPerm } from '@/lib/use-permissions';
 import { useCachedFetch } from '@/lib/use-cached-fetch';
 import { prefetchRoute } from '@/lib/prefetch';
+import { onPluginMenuUpdate } from '@/lib/plugin-events';
 
 type ContentType = { slug: string; name: string };
 type PluginMenu = { name: string; label: string; icon: string };
@@ -50,6 +51,12 @@ export const Sidebar = ({
 	const { data: freshData } = useCachedFetch<ContentType[]>('/api/collections');
 	const contentTypes = (freshData ?? initialCollections).map((c) => ({ slug: c.slug, name: c.name }));
 	const [pluginsOpen, setPluginsOpen] = useState(true);
+	const [activePluginMenus, setActivePluginMenus] = useState<PluginMenu[]>(pluginMenus);
+
+	/* Listen for plugin enable/disable events to update sidebar instantly */
+	useEffect(() => {
+		return onPluginMenuUpdate((menus) => setActivePluginMenus(menus));
+	}, []);
 
 	useEffect(() => {
 		const stored = localStorage.getItem('sidebar-collapsed');
@@ -139,12 +146,12 @@ export const Sidebar = ({
 					</div>
 				)}
 
-				{pluginMenus.length > 0 && (
+				{activePluginMenus.length > 0 && (
 					<>
 						<SectionHeader label="Plugins" open={pluginsOpen} onToggle={() => setPluginsOpen(!pluginsOpen)} />
 						{(pluginsOpen || collapsed) && (
 							<div className="space-y-0.5">
-								{pluginMenus.map((pm) => {
+								{activePluginMenus.map((pm) => {
 									const Icon = PLUGIN_ICONS[pm.icon] ?? Puzzle;
 									return <NavItem key={pm.name} href={`/plugins/${pm.name}`} icon={Icon} label={pm.label} />;
 								})}
