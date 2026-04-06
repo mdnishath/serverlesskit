@@ -36,8 +36,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 /**
  * Client component for plugins list page.
- * Fetches fresh data from API on mount to avoid stale SSR cache.
- * @param props - initialPlugins from server, canManage permission
+ * Uses optimistic UI — toggles update only the clicked plugin.
  */
 export const PluginsClient = ({
 	initialPlugins,
@@ -50,14 +49,6 @@ export const PluginsClient = ({
 	const [plugins, setPlugins] = useState<PluginInfo[]>(initialPlugins);
 	const [toggling, setToggling] = useState<string | null>(null);
 
-	const refreshPlugins = async () => {
-		try {
-			const res = await fetch('/api/plugins', { cache: 'no-store' });
-			const json = await res.json();
-			if (json.ok) setPlugins(json.data);
-		} catch {}
-	};
-
 	const deletePlugin = async (e: React.MouseEvent, name: string) => {
 		e.stopPropagation();
 		if (!confirm(`Permanently delete plugin "${name}"? This cannot be undone.`)) return;
@@ -69,8 +60,8 @@ export const PluginsClient = ({
 			});
 			const json = await res.json();
 			if (json.ok) {
-				/* Refresh from API to get clean state after runtime reset */
-				await refreshPlugins();
+				/* Remove from local state immediately */
+				setPlugins((prev) => prev.filter((p) => p.name !== name));
 			} else {
 				alert(json.error?.message ?? 'Failed to delete');
 			}
@@ -82,9 +73,11 @@ export const PluginsClient = ({
 		if (!canManage) return;
 		setToggling(name);
 
-		/* Optimistic update — immediately toggle just this plugin */
+		const newStatus = currentlyActive ? 'installed' as const : 'active' as const;
+
+		/* Optimistic: update ONLY this plugin */
 		setPlugins((prev) => prev.map((p) =>
-			p.name === name ? { ...p, status: currentlyActive ? 'installed' as const : 'active' as const } : p
+			p.name === name ? { ...p, status: newStatus } : p
 		));
 
 		try {
@@ -94,11 +87,15 @@ export const PluginsClient = ({
 				body: JSON.stringify({ name, enabled: !currentlyActive }),
 			});
 			const json = await res.json();
-			if (json.ok && json.data) {
-				setPlugins(json.data);
+			if (!json.ok) {
+				/* Revert on failure */
+				setPlugins((prev) => prev.map((p) =>
+					p.name === name ? { ...p, status: currentlyActive ? 'active' as const : 'installed' as const } : p
+				));
 			}
+			/* On success: keep the optimistic update — don't replace all plugins from API */
 		} catch {
-			/* Revert optimistic update on error */
+			/* Revert on error */
 			setPlugins((prev) => prev.map((p) =>
 				p.name === name ? { ...p, status: currentlyActive ? 'active' as const : 'installed' as const } : p
 			));

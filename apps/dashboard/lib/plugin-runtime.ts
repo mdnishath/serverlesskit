@@ -210,9 +210,13 @@ export const enablePlugin = async (name: string): Promise<{ ok: boolean; message
 	syncHooks();
 	const db = getDb();
 	await db.execute({
-		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 1, ?)`,
-		args: [name, JSON.stringify(instance.config)],
+		sql: `UPDATE "${PLUGINS_TABLE}" SET "enabled" = 1 WHERE "name" = ?`,
+		args: [name],
 	});
+	console.log(`[plugin] ENABLED "${name}" — DB updated to enabled=1`);
+	/* Verify write */
+	const check = await db.execute({ sql: `SELECT "name", "enabled" FROM "${PLUGINS_TABLE}"`, args: [] });
+	console.log('[plugin] DB state after enable:', check.rows.map((r) => `${r.name}=${r.enabled}`).join(', '));
 	return { ok: true, message: `Plugin "${name}" enabled` };
 };
 
@@ -226,9 +230,13 @@ export const disablePlugin = async (name: string): Promise<{ ok: boolean; messag
 	syncHooks();
 	const db = getDb();
 	await db.execute({
-		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, ?)`,
-		args: [name, JSON.stringify(instance.config)],
+		sql: `UPDATE "${PLUGINS_TABLE}" SET "enabled" = 0 WHERE "name" = ?`,
+		args: [name],
 	});
+	console.log(`[plugin] DISABLED "${name}" — DB updated to enabled=0`);
+	/* Verify write */
+	const check = await db.execute({ sql: `SELECT "name", "enabled" FROM "${PLUGINS_TABLE}"`, args: [] });
+	console.log('[plugin] DB state after disable:', check.rows.map((r) => `${r.name}=${r.enabled}`).join(', '));
 	return { ok: true, message: `Plugin "${name}" disabled` };
 };
 
