@@ -7,57 +7,11 @@ import { PLUGIN_META, type PluginMenuEntry } from './builtin-plugins/registry';
 
 const PLUGINS_TABLE = '_plugins';
 
-/** Singleton plugin registry */
+/** Singleton state */
 let registry: ReturnType<typeof createPluginRegistry> | null = null;
-
-/** Singleton hook manager shared by all CRUD operations */
 let hookManager: ReturnType<typeof createHookManager> | null = null;
-
-/** Whether initPlugins has been called */
 let initialized = false;
-
-/** All available built-in plugin definitions (loaded lazily) */
 let builtInPlugins: PluginDefinition[] = [];
-
-/**
- * Ensures the _plugins table exists for persisting plugin state.
- */
-const ensureTable = async () => {
-	const db = getDb();
-	await db.execute(`
-		CREATE TABLE IF NOT EXISTS "${PLUGINS_TABLE}" (
-			"name" TEXT PRIMARY KEY NOT NULL,
-			"enabled" INTEGER NOT NULL DEFAULT 0,
-			"config" TEXT NOT NULL DEFAULT '{}'
-		);
-	`);
-};
-
-/**
- * Loads enabled plugin names from the DB.
- * @returns Map of enabled plugin names to their config
- */
-const loadEnabledPlugins = async (): Promise<Map<string, Record<string, unknown>>> => {
-	const db = getDb();
-	const result = await db.execute(`SELECT "name", "config" FROM "${PLUGINS_TABLE}" WHERE "enabled" = 1`);
-	const map = new Map<string, Record<string, unknown>>();
-	for (const row of result.rows) {
-		const name = String(row.name);
-		const config = JSON.parse(String(row.config || '{}')) as Record<string, unknown>;
-		map.set(name, config);
-	}
-	return map;
-};
-
-/**
- * Loads deleted plugin names from the DB (enabled = -1).
- * These plugins are skipped during init even if they're built-in.
- */
-const loadDeletedPlugins = async (): Promise<Set<string>> => {
-	const db = getDb();
-	const result = await db.execute(`SELECT "name" FROM "${PLUGINS_TABLE}" WHERE "enabled" = -1`);
-	return new Set(result.rows.map((row) => String(row.name)));
-};
 
 /** All valid hook events */
 const HOOK_EVENTS: HookEvent[] = [
@@ -65,16 +19,22 @@ const HOOK_EVENTS: HookEvent[] = [
 	'beforeDelete', 'afterDelete', 'beforeRead', 'afterRead',
 ];
 
-/**
- * Syncs plugin hooks into the shared HookManager.
- * Plugin hooks are registered as global (apply to all collections)
- * by wrapping them — the HookManager is keyed by "collection:event",
- * so we register a special "__global__" collection and check it in getHookManager.
- */
+/** Ensures the _plugins table exists */
+const ensureTable = async () => {
+	const db = getDb();
+	await db.execute(`CREATE TABLE IF NOT EXISTS "${PLUGINS_TABLE}" ("name" TEXT PRIMARY KEY NOT NULL, "enabled" INTEGER NOT NULL DEFAULT 0, "config" TEXT NOT NULL DEFAULT '{}')`);
+};
+
+/** Ensures the _plugin_meta table exists */
+const ensureMetaTable = async () => {
+	const db = getDb();
+	await db.execute(`CREATE TABLE IF NOT EXISTS "_plugin_meta" ("name" TEXT PRIMARY KEY NOT NULL, "version" TEXT NOT NULL DEFAULT '1.0.0', "description" TEXT NOT NULL DEFAULT '', "author" TEXT NOT NULL DEFAULT '', "category" TEXT NOT NULL DEFAULT 'developer', "features" TEXT NOT NULL DEFAULT '[]', "hooks" TEXT NOT NULL DEFAULT '[]', "settings" TEXT NOT NULL DEFAULT '[]', "installedAt" TEXT NOT NULL)`);
+};
+
+/** Syncs plugin hooks into the shared HookManager */
 const syncHooks = () => {
 	if (!registry || !hookManager) return;
 	hookManager.clear();
-
 	for (const plugin of registry.getAll()) {
 		if (plugin.state !== 'active') continue;
 		for (const [event, handlers] of plugin.hooks.entries()) {
@@ -86,10 +46,7 @@ const syncHooks = () => {
 	}
 };
 
-/**
- * Loads built-in plugin definitions.
- * @returns Array of plugin definitions
- */
+/** Loads built-in plugin definitions from code */
 const loadBuiltInPlugins = async (): Promise<PluginDefinition[]> => {
 	const { webhookPlugin } = await import('./builtin-plugins/webhook');
 	const { auditLogPlugin } = await import('./builtin-plugins/audit-log');
@@ -98,27 +55,40 @@ const loadBuiltInPlugins = async (): Promise<PluginDefinition[]> => {
 };
 
 /**
- * Loads uploaded plugin definitions from the _plugin_meta table.
- * These are config-only plugins — they don't run arbitrary code,
- * but their metadata (features, hooks, settings) is available in the UI.
+ * Gets the list of plugin names that exist in _plugins table.
+ * Returns a map: name → { enabled: number, config: object }
  */
-const loadUploadedPlugins = async (deletedSet: Set<string>): Promise<PluginDefinition[]> => {
+const loadPluginStates = async (): Promise<Map<string, { enabled: number; config: Record<string, unknown> }>> => {
+	const db = getDb();
+	const result = await db.execute(`SELECT "name", "enabled", "config" FROM "${PLUGINS_TABLE}"`);
+	const map = new Map<string, { enabled: number; config: Record<string, unknown> }>();
+	for (const row of result.rows) {
+		map.set(String(row.name), {
+			enabled: Number(row.enabled),
+			config: JSON.parse(String(row.config || '{}')) as Record<string, unknown>,
+		});
+	}
+	return map;
+};
+
+/**
+ * Loads uploaded plugin definitions from _plugin_meta table.
+ * Registers their metadata in PLUGIN_META for UI display.
+ */
+const loadUploadedPlugins = async (excludeNames: Set<string>): Promise<PluginDefinition[]> => {
 	const db = getDb();
 	try {
-		await db.execute(`CREATE TABLE IF NOT EXISTS "_plugin_meta" ("name" TEXT PRIMARY KEY NOT NULL, "version" TEXT NOT NULL DEFAULT '1.0.0', "description" TEXT NOT NULL DEFAULT '', "author" TEXT NOT NULL DEFAULT '', "category" TEXT NOT NULL DEFAULT 'developer', "features" TEXT NOT NULL DEFAULT '[]', "hooks" TEXT NOT NULL DEFAULT '[]', "settings" TEXT NOT NULL DEFAULT '[]', "installedAt" TEXT NOT NULL)`);
+		await ensureMetaTable();
 		const result = await db.execute(`SELECT * FROM "_plugin_meta"`);
 		const uploaded: PluginDefinition[] = [];
 		for (const row of result.rows) {
 			const name = String(row.name);
-			/* Skip deleted or built-in duplicates */
-			if (deletedSet.has(name)) continue;
-			if (builtInPlugins.some((p) => p.manifest.name === name)) continue;
+			if (excludeNames.has(name)) continue;
 
 			const features = JSON.parse(String(row.features || '[]')) as string[];
 			const hooks = JSON.parse(String(row.hooks || '[]')) as string[];
 			const settings = JSON.parse(String(row.settings || '[]')) as Array<Record<string, unknown>>;
 
-			/* Register metadata in PLUGIN_META for the detail page */
 			PLUGIN_META[name] = {
 				category: (String(row.category) as 'automation' | 'content' | 'security' | 'developer') ?? 'developer',
 				features,
@@ -134,14 +104,13 @@ const loadUploadedPlugins = async (deletedSet: Set<string>): Promise<PluginDefin
 				readme: `Uploaded plugin: ${String(row.description)}`,
 			};
 
-			/* Create a no-op plugin definition (config-only) */
 			const { definePlugin } = await import('@serverlesskit/plugin-sdk');
 			uploaded.push(definePlugin({
 				name,
 				version: String(row.version),
 				description: String(row.description),
 				author: String(row.author),
-				setup: () => { /* config-only plugin — no runtime hooks */ },
+				setup: () => {},
 			}));
 		}
 		return uploaded;
@@ -151,8 +120,7 @@ const loadUploadedPlugins = async (deletedSet: Set<string>): Promise<PluginDefin
 };
 
 /**
- * Initializes the plugin system. Lazy — runs once on first call.
- * Loads built-in + uploaded plugins, installs them, activates enabled ones.
+ * Initializes the plugin system. Lazy — runs once per lifecycle.
  */
 export const initPlugins = async (): Promise<void> => {
 	if (initialized) return;
@@ -164,29 +132,42 @@ export const initPlugins = async (): Promise<void> => {
 	try {
 		await ensureTable();
 		builtInPlugins = await loadBuiltInPlugins();
-		const enabledMap = await loadEnabledPlugins();
-		const deletedSet = await loadDeletedPlugins();
-		const uploadedPlugins = await loadUploadedPlugins(deletedSet);
+		const states = await loadPluginStates();
+
+		/* Collect deleted names (enabled = -1) */
+		const deletedNames = new Set<string>();
+		for (const [name, state] of states) {
+			if (state.enabled === -1) deletedNames.add(name);
+		}
+
+		/* Load uploaded plugins, excluding deleted */
+		const builtInNames = new Set(builtInPlugins.map((p) => p.manifest.name));
+		const uploadedPlugins = await loadUploadedPlugins(new Set([...deletedNames, ...builtInNames]));
 		const allPlugins = [...builtInPlugins, ...uploadedPlugins];
 
-		/* Install all plugins, skip deleted ones */
 		const db = getDb();
 		for (const plugin of allPlugins) {
 			const name = plugin.manifest.name;
-			if (deletedSet.has(name)) continue;
-			const config = enabledMap.get(name) ?? {};
+			if (deletedNames.has(name)) continue;
+
+			const state = states.get(name);
+			const config = state?.config ?? {};
 			registry.install(plugin, config);
-			/* Ensure row exists in _plugins so toggle always works */
-			const isEnabled = enabledMap.has(name) ? 1 : 0;
-			await db.execute({
-				sql: `INSERT OR IGNORE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, ?, ?)`,
-				args: [name, isEnabled, JSON.stringify(config)],
-			});
+
+			/* Ensure row exists */
+			if (!state) {
+				await db.execute({
+					sql: `INSERT OR IGNORE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, ?)`,
+					args: [name, JSON.stringify(config)],
+				});
+			}
 		}
 
 		/* Activate enabled ones */
-		for (const name of enabledMap.keys()) {
-			await registry.activate(name);
+		for (const [name, state] of states) {
+			if (state.enabled === 1 && registry.get(name)) {
+				await registry.activate(name);
+			}
 		}
 
 		syncHooks();
@@ -195,24 +176,25 @@ export const initPlugins = async (): Promise<void> => {
 	}
 };
 
+/** Force re-init on next call */
+const resetRuntime = () => {
+	initialized = false;
+	registry = null;
+	hookManager = null;
+};
+
 /**
- * Gets a HookManager that executes both collection-specific and global hooks.
- * Global hooks (from plugins) are registered under "__global__" collection.
- * This wrapper transparently runs both when execute() is called.
- * @returns A HookManager-compatible object
+ * Gets a HookManager that runs both collection-specific and global hooks.
  */
 export const getHookManager = async () => {
 	await initPlugins();
 	const base = hookManager!;
-
 	return {
 		register: base.register,
 		has: (collection: string, event: HookEvent) =>
 			base.has(collection, event) || base.has('__global__', event),
 		execute: async (collection: string, event: HookEvent, payload: import('@serverlesskit/core/hooks').HookPayload) => {
-			/* Run collection-specific hooks first */
 			let result = await base.execute(collection, event, payload);
-			/* Then run global plugin hooks */
 			result = await base.execute('__global__', event, result);
 			return result;
 		},
@@ -221,73 +203,56 @@ export const getHookManager = async () => {
 };
 
 /**
- * Gets the plugin registry (initializes plugins if needed).
- * @returns The PluginRegistry instance
+ * Gets the plugin registry.
  */
-export const getPluginRegistry = async (): Promise<ReturnType<typeof createPluginRegistry>> => {
+export const getPluginRegistry = async () => {
 	await initPlugins();
 	return registry!;
 };
 
 /**
  * Enables a plugin and persists to DB.
- * @param name - Plugin name
- * @returns Success or error message
  */
 export const enablePlugin = async (name: string): Promise<{ ok: boolean; message: string }> => {
 	await initPlugins();
 	if (!registry) return { ok: false, message: 'Plugin system not initialized' };
-
 	const instance = registry.get(name);
 	if (!instance) return { ok: false, message: `Plugin "${name}" not found` };
-
 	const result = await registry.activate(name);
 	if (!result.ok) return { ok: false, message: result.error.message };
-
 	syncHooks();
-
 	const db = getDb();
 	await db.execute({
 		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 1, ?)`,
 		args: [name, JSON.stringify(instance.config)],
 	});
-
 	return { ok: true, message: `Plugin "${name}" enabled` };
 };
 
 /**
  * Disables a plugin and persists to DB.
- * @param name - Plugin name
- * @returns Success or error message
  */
 export const disablePlugin = async (name: string): Promise<{ ok: boolean; message: string }> => {
 	await initPlugins();
 	if (!registry) return { ok: false, message: 'Plugin system not initialized' };
-
 	const instance = registry.get(name);
 	if (!instance) return { ok: false, message: `Plugin "${name}" not found` };
-
 	registry.deactivate(name);
 	syncHooks();
-
-	/* Use INSERT OR REPLACE to ensure row exists even if never enabled before */
 	const db = getDb();
 	await db.execute({
 		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, ?)`,
 		args: [name, JSON.stringify(instance.config)],
 	});
-
 	return { ok: true, message: `Plugin "${name}" disabled` };
 };
 
 /**
- * Gets all plugins with their current state for the UI.
- * @returns Array of plugin info objects with rich metadata
+ * Gets all plugins info for the UI.
  */
 export const getAllPluginsInfo = async () => {
 	await initPlugins();
 	if (!registry) return [];
-
 	return registry.getAll().map((p: PluginInstance) => {
 		const name = p.definition.manifest.name;
 		const meta = PLUGIN_META[name];
@@ -309,27 +274,20 @@ export const getAllPluginsInfo = async () => {
 };
 
 /**
- * Gets detailed info for a single plugin including settings schema and config.
- * @param name - Plugin name
- * @returns Full plugin detail or null
+ * Gets detailed info for a single plugin.
  */
 export const getPluginDetail = async (name: string) => {
 	await initPlugins();
 	if (!registry) return null;
-
 	const instance = registry.get(name);
 	if (!instance) return null;
-
 	const meta = PLUGIN_META[name];
 	const db = getDb();
 	let config: Record<string, unknown> = {};
 	try {
 		const result = await db.execute({ sql: `SELECT "config" FROM "${PLUGINS_TABLE}" WHERE "name" = ?`, args: [name] });
 		if (result.rows[0]) config = JSON.parse(String(result.rows[0].config || '{}')) as Record<string, unknown>;
-	} catch { /* no config yet */ }
-
-	const isBuiltIn = builtInPlugins.some((p) => p.manifest.name === name);
-
+	} catch {}
 	return {
 		name: instance.definition.manifest.name,
 		version: instance.definition.manifest.version,
@@ -345,149 +303,83 @@ export const getPluginDetail = async (name: string) => {
 		hooks: meta?.hooks ?? [],
 		readme: meta?.readme ?? '',
 		config,
-		isBuiltIn,
+		isBuiltIn: builtInPlugins.some((p) => p.manifest.name === name),
 	};
 };
 
 /**
- * Updates a plugin's config, saves to DB, and re-activates with new config.
- * @param name - Plugin name
- * @param config - New configuration object
- * @returns Success or error
+ * Updates a plugin's config.
  */
 export const updatePluginConfig = async (name: string, config: Record<string, unknown>): Promise<{ ok: boolean; message: string }> => {
 	await initPlugins();
 	if (!registry) return { ok: false, message: 'Plugin system not initialized' };
-
 	const instance = registry.get(name);
 	if (!instance) return { ok: false, message: `Plugin "${name}" not found` };
-
-	/* Update config in memory */
 	Object.assign(instance.config, config);
-
-	/* Persist to DB */
 	const db = getDb();
 	const isEnabled = instance.state === 'active' ? 1 : 0;
 	await db.execute({
 		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, ?, ?)`,
 		args: [name, isEnabled, JSON.stringify(instance.config)],
 	});
-
-	/* Re-activate if active to apply new config */
 	if (instance.state === 'active') {
 		registry.deactivate(name);
 		await registry.activate(name);
 		syncHooks();
 	}
-
 	return { ok: true, message: 'Settings saved' };
 };
 
 /**
- * Registers a newly uploaded plugin into the running registry.
- * Called after zip upload to make the plugin appear immediately.
- * @param name - Plugin name
- * @param meta - Plugin metadata from manifest.json
+ * Registers an uploaded plugin into the running registry immediately.
+ * Also clears any previous "deleted" marker from DB.
  */
 export const registerUploadedPlugin = async (name: string, meta: {
 	version: string; description: string; author: string; category: string;
 	features: string[]; hooks: string[]; settings: Array<Record<string, unknown>>;
 }): Promise<void> => {
+	/* Force full re-init so the newly saved _plugin_meta row gets loaded */
+	resetRuntime();
 	await initPlugins();
-	if (!registry) return;
-
-	/* Skip if already registered */
-	if (registry.get(name)) return;
-
-	/* Register metadata */
-	PLUGIN_META[name] = {
-		category: (meta.category as 'automation' | 'content' | 'security' | 'developer') ?? 'developer',
-		features: meta.features,
-		settingsSchema: meta.settings.map((s) => ({
-			key: String(s.key ?? ''),
-			label: String(s.label ?? ''),
-			type: (String(s.type ?? 'text') as 'text' | 'url' | 'number' | 'boolean' | 'select' | 'textarea'),
-			placeholder: s.placeholder ? String(s.placeholder) : undefined,
-			description: s.description ? String(s.description) : undefined,
-			required: Boolean(s.required),
-		})),
-		hooks: meta.hooks,
-		readme: `Uploaded plugin: ${meta.description}`,
-	};
-
-	/* Create a config-only plugin definition and install it */
-	const { definePlugin } = await import('@serverlesskit/plugin-sdk');
-	const pluginDef = definePlugin({
-		name,
-		version: meta.version,
-		description: meta.description,
-		author: meta.author,
-		setup: () => { /* config-only plugin */ },
-	});
-	const installResult = registry.install(pluginDef, {});
-	/* If already installed (name conflict), skip */
-	if (!installResult.ok) return;
-
-	/* Ensure DB row exists and is NOT marked as deleted */
-	const db = getDb();
-	await db.execute({
-		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, '{}')`,
-		args: [name],
-	});
 };
 
 /**
- * Permanently deletes a plugin.
- * Removes from registry, DB, and metadata cache.
- * Forces full re-init on next request to ensure clean state.
- * @param name - Plugin name
- * @returns Success or error
+ * Permanently deletes a plugin. Forces re-init on next request.
  */
 export const deletePlugin = async (name: string): Promise<{ ok: boolean; message: string }> => {
 	await initPlugins();
 	if (!registry) return { ok: false, message: 'Plugin system not initialized' };
 
-	/* Deactivate first if active */
 	const instance = registry.get(name);
 	if (instance?.state === 'active') {
 		registry.deactivate(name);
 	}
-
-	/* Remove from registry */
 	registry.uninstall(name);
 	syncHooks();
 
-	/* Mark as deleted in _plugins (enabled = -1 prevents re-loading on cold start) */
 	const db = getDb();
+	/* Mark as deleted (-1) so built-in plugins don't reload */
 	await db.execute({
 		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, -1, '{}')`,
 		args: [name],
 	});
-
-	/* Remove uploaded metadata if exists */
+	/* Remove uploaded metadata */
 	try {
 		await db.execute({ sql: `DELETE FROM "_plugin_meta" WHERE "name" = ?`, args: [name] });
-	} catch { /* table may not exist */ }
+	} catch {}
 
-	/* Remove from metadata cache */
 	delete PLUGIN_META[name];
-
-	/* Force full re-init on next request so deleted plugins don't come back */
-	initialized = false;
-	registry = null;
-	hookManager = null;
+	resetRuntime();
 
 	return { ok: true, message: `Plugin "${name}" deleted permanently` };
 };
 
 /**
- * Gets sidebar menu items for active plugins that have dashboardMenu defined.
- * @returns Array of { name, label, icon } for sidebar rendering
+ * Gets sidebar menu items for active plugins.
  */
 export const getActivePluginMenus = async (): Promise<Array<{ name: string; label: string; icon: string }>> => {
 	await initPlugins();
 	if (!registry) return [];
-
 	const menus: Array<{ name: string; label: string; icon: string }> = [];
 	for (const p of registry.getAll()) {
 		if (p.state !== 'active') continue;
