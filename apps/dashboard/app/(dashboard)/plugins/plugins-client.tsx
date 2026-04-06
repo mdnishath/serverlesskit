@@ -52,7 +52,7 @@ export const PluginsClient = ({
 
 	const refreshPlugins = async () => {
 		try {
-			const res = await fetch('/api/plugins');
+			const res = await fetch('/api/plugins', { cache: 'no-store' });
 			const json = await res.json();
 			if (json.ok) setPlugins(json.data);
 		} catch {}
@@ -81,6 +81,12 @@ export const PluginsClient = ({
 		e.stopPropagation();
 		if (!canManage) return;
 		setToggling(name);
+
+		/* Optimistic update — immediately toggle just this plugin */
+		setPlugins((prev) => prev.map((p) =>
+			p.name === name ? { ...p, status: currentlyActive ? 'installed' as const : 'active' as const } : p
+		));
+
 		try {
 			const res = await fetch('/api/plugins', {
 				method: 'POST',
@@ -88,11 +94,15 @@ export const PluginsClient = ({
 				body: JSON.stringify({ name, enabled: !currentlyActive }),
 			});
 			const json = await res.json();
-			if (json.ok) {
-				/* Refresh from API to get clean state */
-				await refreshPlugins();
+			if (json.ok && json.data) {
+				setPlugins(json.data);
 			}
-		} catch {}
+		} catch {
+			/* Revert optimistic update on error */
+			setPlugins((prev) => prev.map((p) =>
+				p.name === name ? { ...p, status: currentlyActive ? 'active' as const : 'installed' as const } : p
+			));
+		}
 		setToggling(null);
 	};
 
