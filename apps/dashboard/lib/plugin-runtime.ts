@@ -424,12 +424,14 @@ export const registerUploadedPlugin = async (name: string, meta: {
 		author: meta.author,
 		setup: () => { /* config-only plugin */ },
 	});
-	registry.install(pluginDef, {});
+	const installResult = registry.install(pluginDef, {});
+	/* If already installed (name conflict), skip */
+	if (!installResult.ok) return;
 
-	/* Ensure DB row exists */
+	/* Ensure DB row exists and is NOT marked as deleted */
 	const db = getDb();
 	await db.execute({
-		sql: `INSERT OR IGNORE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, '{}')`,
+		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, 0, '{}')`,
 		args: [name],
 	});
 };
