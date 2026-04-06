@@ -55,6 +55,7 @@ export const PluginsClient = ({
 		webhook: { label: 'Webhooks', icon: 'webhook' },
 		'audit-log': { label: 'Audit Log', icon: 'shield' },
 		'slug-generator': { label: 'Slug Generator', icon: 'link' },
+		'serverlesskit-seo': { label: 'SEO', icon: 'search' },
 	};
 
 	/** Sync sidebar menus whenever plugins state changes */

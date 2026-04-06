@@ -139,4 +139,42 @@ Automatically creates a URL-friendly slug from the \`title\` or \`name\` field w
 - Input title: "My Blog Post!" → Generated slug: "my-blog-post"
 - Input name: "New Product (2025)" → Generated slug: "new-product-2025"`,
 	},
+
+	'serverlesskit-seo': {
+		category: 'content',
+		dashboardMenu: { label: 'SEO', icon: 'search' },
+		features: [
+			'Meta title and description for every entry in every collection',
+			'Focus keyword tracking with SEO score analysis',
+			'Google Search preview — see how your page looks in SERPs',
+			'Open Graph tags for social media sharing (Facebook, Twitter, LinkedIn)',
+			'Canonical URL management to prevent duplicate content',
+			'noindex/nofollow controls per entry',
+			'Global SEO health dashboard with scores across all content',
+			'Automatic SEO record creation when new entries are added',
+			'Auto-cleanup when entries are deleted',
+		],
+		settingsSchema: [],
+		hooks: ['afterCreate', 'afterDelete'],
+		readme: `## ServerlessKit SEO
+
+A complete Yoast SEO-like plugin for ServerlessKit. Adds SEO metadata management to every entry in every content type.
+
+### How It Works
+1. Enable the plugin from the Plugins page
+2. Go to any content type and edit an entry
+3. You'll see a collapsible "SEO" panel below the entry fields
+4. Fill in meta title, description, focus keyword, and Open Graph tags
+5. The SEO score updates in real-time as you type
+6. Check the global SEO dashboard for health overview across all content
+
+### SEO Score
+The plugin analyzes your SEO setup and gives a score based on:
+- Meta title length (30-60 characters optimal)
+- Meta description length (120-160 characters optimal)
+- Focus keyword is set
+- Focus keyword appears in title
+- Focus keyword appears in description
+- Page is indexable (no noindex)`,
+	},
 };

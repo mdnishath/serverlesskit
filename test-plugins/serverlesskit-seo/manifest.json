@@ -1,0 +1,20 @@
+{
+  "name": "serverlesskit-seo",
+  "version": "1.0.0",
+  "description": "Complete SEO toolkit — meta tags, Open Graph, focus keywords, SEO analysis for all content types",
+  "author": "ServerlessKit",
+  "category": "content",
+  "features": [
+    "Meta title and description for every entry in every collection",
+    "Focus keyword tracking with SEO score analysis",
+    "Google Search preview — see how your page looks in SERPs",
+    "Open Graph tags for social media sharing",
+    "Canonical URL management to prevent duplicate content",
+    "noindex/nofollow controls per entry",
+    "Global SEO health dashboard with scores across all content",
+    "Automatic SEO record creation when new entries are added",
+    "Auto-cleanup when entries are deleted"
+  ],
+  "hooks": ["afterCreate", "afterDelete"],
+  "settings": []
+}

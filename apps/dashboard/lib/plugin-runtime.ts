@@ -51,7 +51,8 @@ const loadBuiltInPlugins = async (): Promise<PluginDefinition[]> => {
 	const { webhookPlugin } = await import('./builtin-plugins/webhook');
 	const { auditLogPlugin } = await import('./builtin-plugins/audit-log');
 	const { slugGeneratorPlugin } = await import('./builtin-plugins/slug-generator');
-	return [webhookPlugin, auditLogPlugin, slugGeneratorPlugin];
+	const { serverlesskitSeoPlugin } = await import('./builtin-plugins/serverlesskit-seo');
+	return [webhookPlugin, auditLogPlugin, slugGeneratorPlugin, serverlesskitSeoPlugin];
 };
 
 /** Gets plugin states from DB: name → { enabled, config } */
@@ -426,6 +427,7 @@ const KNOWN_MENUS: Record<string, { label: string; icon: string }> = {
 	webhook: { label: 'Webhooks', icon: 'webhook' },
 	'audit-log': { label: 'Audit Log', icon: 'shield' },
 	'slug-generator': { label: 'Slug Generator', icon: 'link' },
+	'serverlesskit-seo': { label: 'SEO', icon: 'search' },
 };
 
 /** Gets sidebar menu items for ALL active plugins — reads directly from DB */

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	LayoutDashboard, FolderOpen, Image, Users, Shield, Puzzle, Settings,
 	ChevronLeft, ChevronRight, ChevronDown, Database, FileText,
-	Webhook, ShieldCheck, Link2,
+	Webhook, ShieldCheck, Link2, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useCallback } from 'react';
@@ -23,6 +23,7 @@ const PLUGIN_ICONS: Record<string, typeof Puzzle> = {
 	webhook: Webhook,
 	shield: ShieldCheck,
 	link: Link2,
+	search: Search,
 	puzzle: Puzzle,
 };
 

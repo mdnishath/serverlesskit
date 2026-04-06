@@ -7,6 +7,7 @@ import { DynamicField } from '@/components/collections/dynamic-field';
 import type { FieldTypeName } from '@/components/collections/field-type-selector';
 import { hasPerm } from '@/lib/use-permissions';
 import { useCachedFetch } from '@/lib/use-cached-fetch';
+import { SeoPanel } from '@/components/seo-panel';
 
 type FieldDef = { name: string; type: FieldTypeName; required: boolean; options?: string[] };
 type CollectionMeta = { slug: string; fields: Record<string, Record<string, unknown>> };
@@ -22,12 +23,14 @@ export const EntryEditorClient = ({
 	initialCollections,
 	initialEntry,
 	permissions,
+	seoEnabled = false,
 }: {
 	slug: string;
 	entryId: string;
 	initialCollections: CollectionMeta[];
 	initialEntry: Record<string, unknown> | null;
 	permissions: string[];
+	seoEnabled?: boolean;
 }) => {
 	const router = useRouter();
 	const isNew = entryId === 'new';
@@ -140,6 +143,16 @@ export const EntryEditorClient = ({
 					))
 				)}
 			</div>
+
+			{/* SEO Panel — only shows when serverlesskit-seo plugin is active and editing existing entry */}
+			{seoEnabled && !isNew && (
+				<SeoPanel
+					collection={slug}
+					entryId={entryId}
+					readOnly={readOnly}
+					entryTitle={String(values.title ?? values.name ?? '')}
+				/>
+			)}
 
 			<div className="flex justify-end gap-3 border-t border-border pt-4">
 				<button type="button" onClick={() => router.push(`/collections/${slug}`)}

@@ -9,6 +9,7 @@ import { AuditLogPage } from '@/components/plugin-pages/audit-log-page';
 import { SlugGeneratorPage } from '@/components/plugin-pages/slug-generator-page';
 import { SeoToolkitPage } from '@/components/plugin-pages/seo-toolkit-page';
 import { SocialSharePage } from '@/components/plugin-pages/social-share-page';
+import { ServerlesskitSeoPage } from '@/components/plugin-pages/serverlesskit-seo-page';
 
 /** Map of plugin names to their custom page components */
 const CUSTOM_PAGES: Record<string, (props: { config: Record<string, unknown>; canManage: boolean }) => React.JSX.Element> = {
@@ -17,6 +18,7 @@ const CUSTOM_PAGES: Record<string, (props: { config: Record<string, unknown>; ca
 	'slug-generator': () => <SlugGeneratorPage />,
 	'seo-toolkit': (props) => <SeoToolkitPage {...props} />,
 	'social-share': (props) => <SocialSharePage {...props} />,
+	'serverlesskit-seo': () => <ServerlesskitSeoPage />,
 };
 
 /**
