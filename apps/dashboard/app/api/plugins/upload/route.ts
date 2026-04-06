@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { unzipSync } from 'fflate';
 import { requirePermission } from '@/lib/api-auth';
 import { getDb } from '@/lib/db';
 
@@ -26,49 +27,25 @@ const ensureMetaTable = async () => {
 };
 
 /**
- * Simple zip manifest.json extractor.
- * Zip files store local file headers followed by data. We search for
- * the manifest.json filename in the raw bytes and extract the JSON.
+ * Extracts manifest.json from a zip buffer using fflate.
+ * @param buffer - The zip file as ArrayBuffer
+ * @returns Parsed manifest object or null
  */
 const extractManifest = (buffer: ArrayBuffer): Record<string, unknown> | null => {
-	const bytes = new Uint8Array(buffer);
-	const text = new TextDecoder();
-
-	/* Search for manifest.json in the zip — look for the filename in local file headers */
-	const needle = 'manifest.json';
-	let manifestStart = -1;
-
-	for (let i = 0; i < bytes.length - needle.length; i++) {
-		let match = true;
-		for (let j = 0; j < needle.length; j++) {
-			if (bytes[i + j] !== needle.charCodeAt(j)) { match = false; break; }
-		}
-		if (match) {
-			/* Found "manifest.json" — the data follows after this filename in the local file header.
-			   The local file header has the compressed size at offset -16 from filename start.
-			   But for simplicity, just scan forward for the JSON opening brace. */
-			for (let k = i + needle.length; k < bytes.length; k++) {
-				if (bytes[k] === 0x7B) { /* '{' */
-					/* Find the end of JSON — count braces */
-					let depth = 0;
-					let end = k;
-					for (let m = k; m < bytes.length; m++) {
-						if (bytes[m] === 0x7B) depth++;
-						if (bytes[m] === 0x7D) depth--;
-						if (depth === 0) { end = m + 1; break; }
-					}
-					try {
-						const jsonStr = text.decode(bytes.slice(k, end));
-						return JSON.parse(jsonStr) as Record<string, unknown>;
-					} catch { return null; }
-				}
+	try {
+		const files = unzipSync(new Uint8Array(buffer));
+		/* Look for manifest.json (could be at root or inside a folder) */
+		for (const [path, data] of Object.entries(files)) {
+			const filename = path.split('/').pop();
+			if (filename === 'manifest.json') {
+				const text = new TextDecoder().decode(data);
+				return JSON.parse(text) as Record<string, unknown>;
 			}
-			manifestStart = i;
-			break;
 		}
+		return null;
+	} catch {
+		return null;
 	}
-
-	return null;
 };
 
 /**

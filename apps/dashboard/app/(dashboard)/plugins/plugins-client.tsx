@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Puzzle, PowerOff, AlertCircle, CheckCircle2, Zap, ChevronRight, Upload } from 'lucide-react';
+import { Puzzle, PowerOff, AlertCircle, CheckCircle2, Zap, ChevronRight, Upload, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PluginInfo = {
@@ -17,6 +17,7 @@ type PluginInfo = {
 	category: string;
 	features: string[];
 	hasSettings: boolean;
+	isBuiltIn: boolean;
 };
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
@@ -48,6 +49,21 @@ export const PluginsClient = ({
 	const router = useRouter();
 	const [plugins, setPlugins] = useState<PluginInfo[]>(initialPlugins);
 	const [toggling, setToggling] = useState<string | null>(null);
+
+	const deletePlugin = async (e: React.MouseEvent, name: string) => {
+		e.stopPropagation();
+		if (!confirm(`Permanently delete plugin "${name}"? This cannot be undone.`)) return;
+		try {
+			const res = await fetch('/api/plugins', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name }),
+			});
+			const json = await res.json();
+			if (json.ok) setPlugins(json.data);
+			else alert(json.error?.message ?? 'Failed to delete');
+		} catch { /* delete failed */ }
+	};
 
 	const togglePlugin = async (e: React.MouseEvent, name: string, currentlyActive: boolean) => {
 		e.stopPropagation();
@@ -137,17 +153,27 @@ export const PluginsClient = ({
 										<StatusIcon className="h-3.5 w-3.5" />{statusCfg.label}
 									</div>
 									{canManage && (
-										<button type="button"
-											onClick={(e) => togglePlugin(e, plugin.name, isActive)}
-											disabled={isToggling}
-											className={cn(
-												'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
-												isActive
-													? 'bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
-													: 'bg-primary text-primary-foreground hover:bg-primary/90',
-											)}>
-											{isToggling ? 'Saving...' : isActive ? 'Disable' : 'Enable'}
-										</button>
+										<div className="flex items-center gap-1">
+											<button type="button"
+												onClick={(e) => togglePlugin(e, plugin.name, isActive)}
+												disabled={isToggling}
+												className={cn(
+													'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
+													isActive
+														? 'bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+														: 'bg-primary text-primary-foreground hover:bg-primary/90',
+												)}>
+												{isToggling ? 'Saving...' : isActive ? 'Disable' : 'Enable'}
+											</button>
+											{!plugin.isBuiltIn && (
+												<button type="button"
+													onClick={(e) => deletePlugin(e, plugin.name)}
+													className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+													title="Delete plugin">
+													<Trash2 className="h-3.5 w-3.5" />
+												</button>
+											)}
+										</div>
 									)}
 								</div>
 							</div>
