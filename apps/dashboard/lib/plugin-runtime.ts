@@ -102,7 +102,7 @@ const loadBuiltInPlugins = async (): Promise<PluginDefinition[]> => {
  * These are config-only plugins — they don't run arbitrary code,
  * but their metadata (features, hooks, settings) is available in the UI.
  */
-const loadUploadedPlugins = async (): Promise<PluginDefinition[]> => {
+const loadUploadedPlugins = async (deletedSet: Set<string>): Promise<PluginDefinition[]> => {
 	const db = getDb();
 	try {
 		await db.execute(`CREATE TABLE IF NOT EXISTS "_plugin_meta" ("name" TEXT PRIMARY KEY NOT NULL, "version" TEXT NOT NULL DEFAULT '1.0.0', "description" TEXT NOT NULL DEFAULT '', "author" TEXT NOT NULL DEFAULT '', "category" TEXT NOT NULL DEFAULT 'developer', "features" TEXT NOT NULL DEFAULT '[]', "hooks" TEXT NOT NULL DEFAULT '[]', "settings" TEXT NOT NULL DEFAULT '[]', "installedAt" TEXT NOT NULL)`);
@@ -110,7 +110,8 @@ const loadUploadedPlugins = async (): Promise<PluginDefinition[]> => {
 		const uploaded: PluginDefinition[] = [];
 		for (const row of result.rows) {
 			const name = String(row.name);
-			/* Skip if a built-in plugin has the same name */
+			/* Skip deleted or built-in duplicates */
+			if (deletedSet.has(name)) continue;
 			if (builtInPlugins.some((p) => p.manifest.name === name)) continue;
 
 			const features = JSON.parse(String(row.features || '[]')) as string[];
@@ -163,10 +164,10 @@ export const initPlugins = async (): Promise<void> => {
 	try {
 		await ensureTable();
 		builtInPlugins = await loadBuiltInPlugins();
-		const uploadedPlugins = await loadUploadedPlugins();
-		const allPlugins = [...builtInPlugins, ...uploadedPlugins];
 		const enabledMap = await loadEnabledPlugins();
 		const deletedSet = await loadDeletedPlugins();
+		const uploadedPlugins = await loadUploadedPlugins(deletedSet);
+		const allPlugins = [...builtInPlugins, ...uploadedPlugins];
 
 		/* Install all plugins, skip deleted ones */
 		const db = getDb();
@@ -434,8 +435,9 @@ export const registerUploadedPlugin = async (name: string, meta: {
 };
 
 /**
- * Permanently deletes an uploaded plugin from DB.
- * Built-in plugins cannot be deleted.
+ * Permanently deletes a plugin.
+ * Removes from registry, DB, and metadata cache.
+ * Forces full re-init on next request to ensure clean state.
  * @param name - Plugin name
  * @returns Success or error
  */
@@ -447,24 +449,31 @@ export const deletePlugin = async (name: string): Promise<{ ok: boolean; message
 	const instance = registry.get(name);
 	if (instance?.state === 'active') {
 		registry.deactivate(name);
-		syncHooks();
 	}
 
 	/* Remove from registry */
 	registry.uninstall(name);
+	syncHooks();
 
-	/* Mark as deleted in DB — for built-in plugins, this prevents re-loading on cold start */
+	/* Mark as deleted in _plugins (enabled = -1 prevents re-loading on cold start) */
 	const db = getDb();
 	await db.execute({
 		sql: `INSERT OR REPLACE INTO "${PLUGINS_TABLE}" ("name", "enabled", "config") VALUES (?, -1, '{}')`,
 		args: [name],
 	});
+
+	/* Remove uploaded metadata if exists */
 	try {
 		await db.execute({ sql: `DELETE FROM "_plugin_meta" WHERE "name" = ?`, args: [name] });
 	} catch { /* table may not exist */ }
 
 	/* Remove from metadata cache */
 	delete PLUGIN_META[name];
+
+	/* Force full re-init on next request so deleted plugins don't come back */
+	initialized = false;
+	registry = null;
+	hookManager = null;
 
 	return { ok: true, message: `Plugin "${name}" deleted permanently` };
 };
