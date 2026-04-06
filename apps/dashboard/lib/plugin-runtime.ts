@@ -3,7 +3,7 @@ import type { PluginDefinition, PluginInstance } from '@serverlesskit/plugin-sdk
 import { createHookManager } from '@serverlesskit/core/hooks';
 import type { HookEvent, HookHandler } from '@serverlesskit/core/hooks';
 import { getDb } from './db';
-import { PLUGIN_META, type PluginMenuEntry } from './plugins/registry';
+import { PLUGIN_META, type PluginMenuEntry } from './builtin-plugins/registry';
 
 const PLUGINS_TABLE = '_plugins';
 
@@ -91,9 +91,9 @@ const syncHooks = () => {
  * @returns Array of plugin definitions
  */
 const loadBuiltInPlugins = async (): Promise<PluginDefinition[]> => {
-	const { webhookPlugin } = await import('./plugins/webhook');
-	const { auditLogPlugin } = await import('./plugins/audit-log');
-	const { slugGeneratorPlugin } = await import('./plugins/slug-generator');
+	const { webhookPlugin } = await import('./builtin-plugins/webhook');
+	const { auditLogPlugin } = await import('./builtin-plugins/audit-log');
+	const { slugGeneratorPlugin } = await import('./builtin-plugins/slug-generator');
 	return [webhookPlugin, auditLogPlugin, slugGeneratorPlugin];
 };
 

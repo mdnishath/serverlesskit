@@ -7,7 +7,7 @@ import {
 	Save, Zap, Check, Settings, BookOpen, List, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { SettingField } from '@/lib/plugins/registry';
+import type { SettingField } from '@/lib/builtin-plugins/registry';
 
 type PluginDetail = {
 	name: string;
